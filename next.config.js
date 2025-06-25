@@ -26,19 +26,6 @@ const nextConfig = {
         os: false,
       };
     }
-    // Optimize bundle size
-    if (!dev) {
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            chunks: 'all',
-          },
-        },
-      };
-    }
     return config;
   },
   async headers() {
