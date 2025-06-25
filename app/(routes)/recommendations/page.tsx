@@ -84,7 +84,7 @@ export default function RecommendationsPage() {
       }
     };
     fetchData();
-  }, [user, authChecked]);
+  }, [user, authChecked, supabase]);
 
   if (!authChecked) {
     return (
