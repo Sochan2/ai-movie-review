@@ -1,6 +1,6 @@
 import { Movie } from '@/types/movie';
-import { supabase } from './supabase';
 import { getJustWatchUrl, transformWatchProviders, JustWatchProvider } from './justwatch';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
@@ -8,6 +8,28 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 // Cache for API responses (in-memory cache)
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+interface TMDBMovie {
+  id: number | string;
+  title: string;
+  release_date: string;
+  vote_average: number;
+  poster_path?: string;
+  backdrop_path?: string;
+  overview?: string;
+  genre_ids?: number[];
+  genres?: { id: number; name: string }[];
+  features?: string[];
+  emotions?: string[];
+  themes?: string[];
+  runtime?: number;
+  credits?: {
+    crew?: { job: string; name: string }[];
+    cast?: { name: string; character: string; profile_path?: string }[];
+  };
+  spoken_languages?: { english_name: string }[];
+  [key: string]: any; // for extra TMDB fields
+}
 
 // Helper function to get cached data or fetch from API
 async function fetchWithCache(url: string, cacheKey: string) {
@@ -28,7 +50,11 @@ async function fetchWithCache(url: string, cacheKey: string) {
   return data;
 }
 
-export async function searchMovies(query: string): Promise<Movie[]> {
+// このモジュールはサーバー/クライアント両対応。
+// supabaseクライアントは必ず呼び出し元で分離して渡すこと（SSR: utils/supabase/server, CSR: utils/supabase/client）。
+// 直接importせず、型引数で受け取る設計を徹底すること。
+
+export async function searchMovies(query: string, supabase: SupabaseClient): Promise<Movie[]> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your .env.local file.');
   }
@@ -40,11 +66,11 @@ export async function searchMovies(query: string): Promise<Movie[]> {
   );
   
   const movies = data.results.map(transformTMDbMovie);
-  await syncMoviesToDatabase(movies);
+  await syncMoviesToDatabase(movies, supabase);
   return movies;
 }
 
-export async function getPopularMovies(limit: number = 10): Promise<Movie[]> {
+export async function getPopularMovies(limit: number = 10, supabase: SupabaseClient): Promise<Movie[]> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your .env.local file.');
   }
@@ -57,11 +83,11 @@ export async function getPopularMovies(limit: number = 10): Promise<Movie[]> {
   
   // Limit the number of movies and only fetch basic data for list view
   const movies = data.results.slice(0, limit).map(transformTMDbMovieBasic);
-  await syncMoviesToDatabase(movies);
+  await syncMoviesToDatabase(movies, supabase);
   return movies;
 }
 
-export async function getMoviesByGenre(genreId: number, limit: number = 20): Promise<Movie[]> {
+export async function getMoviesByGenre(genreId: number, limit: number = 20, supabase: SupabaseClient): Promise<Movie[]> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your .env.local file.');
   }
@@ -73,11 +99,11 @@ export async function getMoviesByGenre(genreId: number, limit: number = 20): Pro
   );
   
   const movies = data.results.slice(0, limit).map(transformTMDbMovieBasic);
-  await syncMoviesToDatabase(movies);
+  await syncMoviesToDatabase(movies, supabase);
   return movies;
 }
 
-export async function getTopRatedMovies(limit: number = 20): Promise<Movie[]> {
+export async function getTopRatedMovies(limit: number = 20, supabase: SupabaseClient): Promise<Movie[]> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your .env.local file.');
   }
@@ -89,11 +115,11 @@ export async function getTopRatedMovies(limit: number = 20): Promise<Movie[]> {
   );
   
   const movies = data.results.slice(0, limit).map(transformTMDbMovieBasic);
-  await syncMoviesToDatabase(movies);
+  await syncMoviesToDatabase(movies, supabase);
   return movies;
 }
 
-export async function getNowPlayingMovies(limit: number = 20): Promise<Movie[]> {
+export async function getNowPlayingMovies(limit: number = 20, supabase: SupabaseClient): Promise<Movie[]> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your .env.local file.');
   }
@@ -105,11 +131,11 @@ export async function getNowPlayingMovies(limit: number = 20): Promise<Movie[]> 
   );
   
   const movies = data.results.slice(0, limit).map(transformTMDbMovieBasic);
-  await syncMoviesToDatabase(movies);
+  await syncMoviesToDatabase(movies, supabase);
   return movies;
 }
 
-export async function getMovieDetails(id: string): Promise<Movie> {
+export async function getMovieDetails(id: string, supabase: SupabaseClient): Promise<Movie> {
   if (!TMDB_API_KEY) {
     throw new Error('TMDB API key is not configured. Please add NEXT_PUBLIC_TMDB_API_KEY to your .env.local file.');
   }
@@ -121,12 +147,11 @@ export async function getMovieDetails(id: string): Promise<Movie> {
   );
   
   const movie = transformTMDbMovie(data);
-  await syncMoviesToDatabase([movie]);
+  await syncMoviesToDatabase([movie], supabase);
   return movie;
 }
 
-//get the movies that are trending today
-export async function getTrendingMovies(limit: number = 20, page: number = 1): Promise<Movie[]> {
+export async function getTrendingMovies(limit: number = 20, page: number = 1, supabase: SupabaseClient): Promise<Movie[]> {
   if (!TMDB_API_KEY) throw new Error('TMDB API key is not configured.');
   const cacheKey = `trending_movies_page_${page}`;
   const data = await fetchWithCache(
@@ -134,23 +159,27 @@ export async function getTrendingMovies(limit: number = 20, page: number = 1): P
     cacheKey
   );
   const movies = data.results.slice(0, limit).map(transformTMDbMovieBasic);
-  await syncMoviesToDatabase(movies);
+  await syncMoviesToDatabase(movies, supabase);
   return movies;
 }
 
-async function syncMoviesToDatabase(movies: Movie[]) {
+async function syncMoviesToDatabase(movies: Movie[], supabase: SupabaseClient) {
+  // サーバーサイドのみDB同期
+  if (typeof window !== 'undefined') return;
   for (const movie of movies) {
+    // 必須フィールドがなければスキップ
+    if (!movie.id || !movie.title) continue;
     const { error } = await supabase
       .from('movies')
       .upsert({
         id: movie.id,
         title: movie.title,
-        genres: movie.genres,
-        overview: movie.overview,
-        poster_url: movie.posterUrl,
-        providers: movie.streamingServices,
-        popularity: movie.rating,
-        created_at: new Date().toISOString()
+        genres: movie.genres ?? [],
+        overview: movie.overview ?? '',
+        poster_url: movie.posterUrl ?? '',
+        providers: movie.streamingServices ?? [],
+        popularity: movie.rating ?? 0,
+        // created_atは省略（DBのDEFAULTに任せる）
       }, {
         onConflict: 'id'
       });
@@ -162,7 +191,7 @@ async function syncMoviesToDatabase(movies: Movie[]) {
 }
 
 // Optimized transform function for list views (without heavy data)
-function transformTMDbMovieBasic(tmdbMovie: any): Movie {
+function transformTMDbMovieBasic(tmdbMovie: TMDBMovie): Movie {
   return {
     id: tmdbMovie.id.toString(),
     title: tmdbMovie.title,
@@ -183,7 +212,7 @@ function transformTMDbMovieBasic(tmdbMovie: any): Movie {
   };
 }
 
-function transformTMDbMovie(tmdbMovie: any): Movie {
+function transformTMDbMovie(tmdbMovie: TMDBMovie): Movie {
   const watchProviders = transformWatchProviders(tmdbMovie['watch/providers']?.results?.US);
   const streamingServices = watchProviders.map(provider => provider.name); // サービス名のみ利用
   

@@ -3,6 +3,12 @@ import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 export const createClient = () => {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set in environment variables.');
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set in environment variables.');
+  }
   const cookieStore = cookies()
 
   return createServerClient(
@@ -19,7 +25,11 @@ export const createClient = () => {
           try {
             cookiesStore.set({ name, value, ...options });
           } catch (error) {
-            // Handle cookie setting error
+            if (error instanceof Error) {
+              console.error('Cookie set error:', error.message);
+            } else {
+              console.error('Cookie set error:', error);
+            }
           }
         },
         async remove(name: string, options: CookieOptions) {
@@ -27,7 +37,11 @@ export const createClient = () => {
           try {
             cookiesStore.set({ name, value: '', ...options });
           } catch (error) {
-            // Handle cookie removal error
+            if (error instanceof Error) {
+              console.error('Cookie remove error:', error.message);
+            } else {
+              console.error('Cookie remove error:', error);
+            }
           }
         },
       },

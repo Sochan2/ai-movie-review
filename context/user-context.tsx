@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import * as React from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
@@ -8,6 +9,14 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Preferences {
   selected_subscriptions?: string[];
+}
+
+interface UserProfileUpdate {
+  display_name?: string;
+  is_anonymous?: boolean;
+  selected_subscriptions?: string[];
+  last_login?: string;
+  // updated_atは自動で追加
 }
 
 interface UserContextType {
@@ -45,7 +54,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!user;
 
-  const updateUserProfile = async (userId: string, data: Record<string, any>) => {
+  const updateUserProfile = async (userId: string, data: UserProfileUpdate) => {
     const { error } = await supabase
       .from('users')
       .upsert({

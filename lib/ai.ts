@@ -1,10 +1,22 @@
+// このファイルはサーバー専用（SSR/Node.js専用）。クライアントでimportしてはならない。
+// クライアントでimportされた場合は即エラーになります。
 import { log } from "console";
 import OpenAI from "openai";
 import { createClient } from "@/utils/supabase/server";
 
+// SSR/Node.js専用。クライアントでimportされた場合は即エラー
+if (typeof window !== 'undefined') {
+  throw new Error('lib/ai.ts is server-only and must not be imported on the client.');
+}
+
 console.log("ai.ts loaded");
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY is not set in environment variables.');
+}
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-console.log("OPENAI_API_KEY:", process.env.OPENAI_API_KEY);
+if (process.env.NODE_ENV !== 'production') {
+  console.log("OPENAI_API_KEY:", process.env.OPENAI_API_KEY);
+}
 
 
 

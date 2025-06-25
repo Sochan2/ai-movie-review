@@ -16,6 +16,20 @@ export interface JustWatchMovie {
   justWatchUrl: string;
 }
 
+export interface TMDBWatchProvider {
+  provider_id: number;
+  provider_name: string;
+  // logo_path?: string;
+}
+
+export interface TMDBWatchProviders {
+  flatrate?: TMDBWatchProvider[];
+  free?: TMDBWatchProvider[];
+  ads?: TMDBWatchProvider[];
+  rent?: TMDBWatchProvider[];
+  buy?: TMDBWatchProvider[];
+}
+
 // Get JustWatch URL for a movie
 export function getJustWatchUrl(movieTitle: string, movieYear?: number): string {
   // Create a more specific search query for better results
@@ -42,14 +56,14 @@ export function getProviderJustWatchUrl(movieTitle: string, providerName: string
 // export function getProviderLogoUrl(providerName: string): string { ... }
 
 // Transform TMDB watch providers to JustWatch format
-export function transformWatchProviders(tmdbProviders: any): JustWatchProvider[] {
+export function transformWatchProviders(tmdbProviders: TMDBWatchProviders): JustWatchProvider[] {
   if (!tmdbProviders) return [];
   
   const providers: JustWatchProvider[] = [];
   
   // Add flatrate (subscription) providers
   if (tmdbProviders.flatrate) {
-    tmdbProviders.flatrate.forEach((provider: any) => {
+    tmdbProviders.flatrate.forEach((provider: TMDBWatchProvider) => {
       providers.push({
         id: provider.provider_id,
         name: provider.provider_name,
@@ -61,7 +75,7 @@ export function transformWatchProviders(tmdbProviders: any): JustWatchProvider[]
   
   // Add free providers
   if (tmdbProviders.free) {
-    tmdbProviders.free.forEach((provider: any) => {
+    tmdbProviders.free.forEach((provider: TMDBWatchProvider) => {
       providers.push({
         id: provider.provider_id,
         name: provider.provider_name,
@@ -73,7 +87,7 @@ export function transformWatchProviders(tmdbProviders: any): JustWatchProvider[]
   
   // Add ad-supported providers
   if (tmdbProviders.ads) {
-    tmdbProviders.ads.forEach((provider: any) => {
+    tmdbProviders.ads.forEach((provider: TMDBWatchProvider) => {
       providers.push({
         id: provider.provider_id,
         name: provider.provider_name,
@@ -85,7 +99,7 @@ export function transformWatchProviders(tmdbProviders: any): JustWatchProvider[]
   
   // Add rent providers
   if (tmdbProviders.rent) {
-    tmdbProviders.rent.forEach((provider: any) => {
+    tmdbProviders.rent.forEach((provider: TMDBWatchProvider) => {
       providers.push({
         id: provider.provider_id,
         name: provider.provider_name,
@@ -97,7 +111,7 @@ export function transformWatchProviders(tmdbProviders: any): JustWatchProvider[]
   
   // Add buy providers
   if (tmdbProviders.buy) {
-    tmdbProviders.buy.forEach((provider: any) => {
+    tmdbProviders.buy.forEach((provider: TMDBWatchProvider) => {
       providers.push({
         id: provider.provider_id,
         name: provider.provider_name,

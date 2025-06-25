@@ -54,7 +54,7 @@ export default function MovieDetailPage() {
           return;
         }
         // 2. なければTMDB APIから取得
-        const movieData = await getMovieDetails(id);
+        const movieData = await getMovieDetails(id, supabase);
         setMovie(movieData);
       } catch (error) {
         console.error('Error fetching movie data:', error);
@@ -322,8 +322,8 @@ const handleSubmitReview = async () => {
                     {movie.runtime && <span>{movie.runtime} min</span>}
                   </div>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {movie.genres?.map((genre) => (
-                      <Badge key={genre} variant="secondary">
+                    {movie.genres?.map((genre, i) => (
+                      <Badge key={genre + '-' + i} variant="secondary">
                         {genre}
                       </Badge>
                     ))}
@@ -372,9 +372,9 @@ const handleSubmitReview = async () => {
                           <div className="flex flex-wrap gap-2">
                             {movie.watchProviders
                               .filter(provider => provider.type === 'flatrate')
-                              .map((provider) => (
+                              .map((provider, i) => (
                                 <div
-                                  key={provider.id}
+                                  key={provider.id + '-flatrate-' + i}
                                   className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 hover:bg-accent transition-colors cursor-pointer"
                                   onClick={() => handleProviderClick(provider.name)}
                                 >
@@ -393,9 +393,9 @@ const handleSubmitReview = async () => {
                           <div className="flex flex-wrap gap-2">
                             {movie.watchProviders
                               .filter(provider => provider.type === 'free')
-                              .map((provider) => (
+                              .map((provider, i) => (
                                 <div
-                                  key={provider.id}
+                                  key={provider.id + '-free-' + i}
                                   className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 hover:bg-accent transition-colors cursor-pointer"
                                   onClick={() => handleProviderClick(provider.name)}
                                 >
@@ -414,9 +414,9 @@ const handleSubmitReview = async () => {
                           <div className="flex flex-wrap gap-2">
                             {movie.watchProviders
                               .filter(provider => provider.type === 'ads')
-                              .map((provider) => (
+                              .map((provider, i) => (
                                 <div
-                                  key={provider.id}
+                                  key={provider.id + '-ads-' + i}
                                   className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 hover:bg-accent transition-colors cursor-pointer"
                                   onClick={() => handleProviderClick(provider.name)}
                                 >
@@ -436,9 +436,9 @@ const handleSubmitReview = async () => {
                           <div className="flex flex-wrap gap-2">
                             {movie.watchProviders
                               .filter(provider => provider.type === 'rent' || provider.type === 'buy')
-                              .map((provider) => (
+                              .map((provider, i) => (
                                 <div
-                                  key={provider.id}
+                                  key={provider.id + '-' + provider.type + '-' + i}
                                   className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 hover:bg-accent transition-colors cursor-pointer"
                                   onClick={() => handleProviderClick(provider.name)}
                                 >
@@ -503,9 +503,9 @@ const handleSubmitReview = async () => {
                     <div className="mb-4">
                       <h4 className="text-sm font-medium mb-2">Available on:</h4>
                       <div className="flex flex-wrap gap-2">
-                        {movie.watchProviders.slice(0, 6).map((provider) => (
+                        {movie.watchProviders.slice(0, 6).map((provider, i) => (
                           <div
-                            key={provider.id}
+                            key={provider.id + '-logo-' + i}
                             className="flex items-center gap-2 bg-background border rounded-lg px-3 py-2 hover:bg-accent transition-colors cursor-pointer"
                             onClick={() => handleProviderClick(provider.name)}
                           >
@@ -602,9 +602,9 @@ const handleSubmitReview = async () => {
                     <div>
                       <Label htmlFor="rating">Your Rating</Label>
                       <div className="flex items-center gap-1 mt-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
+                        {[1, 2, 3, 4, 5].map((star, i) => (
                           <button
-                            key={star}
+                            key={'star-' + star + '-' + i}
                             onClick={() => setRating(star)}
                             className="p-1"
                           >

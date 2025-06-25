@@ -53,7 +53,7 @@ export default function MoviePage() {
             setSelectedServices(userData?.selected_subscriptions || []);
           }
         }
-        const movieData = await getPopularMovies(10);
+        const movieData = await getPopularMovies(10, supabase);
         console.log('getPopularMovies result', movieData);
         setMovies(movieData);
         setFilteredMovies(movieData);
@@ -124,7 +124,7 @@ export default function MoviePage() {
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       // If search is empty, fetch popular movies
-      const popularMovies = await getPopularMovies(10);
+      const popularMovies = await getPopularMovies(10, supabase);
       setMovies(popularMovies);
       setFilteredMovies(popularMovies);
       return;
@@ -132,7 +132,7 @@ export default function MoviePage() {
 
     try {
       setLoading(true);
-      const searchResults = await searchMovies(searchQuery);
+      const searchResults = await searchMovies(searchQuery, supabase);
       setMovies(searchResults);
       setFilteredMovies(searchResults);
     } catch (error) {
