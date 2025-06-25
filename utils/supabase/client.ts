@@ -35,7 +35,7 @@ export function createClient() {
 }
 
 // For backward compatibility
-export const supabase = createClient()
+// export const supabase = createClient()
 
 
 
