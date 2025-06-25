@@ -65,7 +65,10 @@ export async function updateUserProfileWithAIResult(
   rating: number,
   selectedEmotions: string[]
 ) {
-  const supabase = createClient();
+ぎ  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   // 1. 既存プロファイル取得
   const { data: profile, error } = await supabase
     .from('user_profiles')
