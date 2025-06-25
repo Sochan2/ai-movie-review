@@ -26,7 +26,6 @@ const nextConfig = {
         os: false,
       };
     }
-    
     // Optimize bundle size
     if (!dev) {
       config.optimization.splitChunks = {
@@ -40,10 +39,8 @@ const nextConfig = {
         },
       };
     }
-    
     return config;
   },
-  // Add headers for better caching
   async headers() {
     return [
       {
