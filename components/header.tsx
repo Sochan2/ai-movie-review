@@ -121,7 +121,7 @@ export default function Header() {
                 user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost\" size="icon\" className="rounded-full">
+                      <Button variant="ghost" size="icon" className="rounded-full">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-primary/10">
                             {getUserInitials()}
