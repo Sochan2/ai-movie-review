@@ -2,7 +2,6 @@
 // クライアントでimportされた場合は即エラーになります。
 import { log } from "console";
 import OpenAI from "openai";
-import { createClient } from "@/utils/supabase/server";
 
 // SSR/Node.js専用。クライアントでimportされた場合は即エラー
 if (typeof window !== 'undefined') {
@@ -77,7 +76,8 @@ export async function updateUserProfileWithAIResult(
   rating: number,
   selectedEmotions: string[]
 ) {
- const supabase = createClient();
+  const { createClient } = await import("@/utils/supabase/server");
+  const supabase = createClient();
   // 1. 既存プロファイル取得
   const { data: profile, error } = await supabase
     .from('user_profiles')
