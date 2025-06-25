@@ -22,6 +22,7 @@ export default function RecommendationsPage() {
     if (!isLoading) setAuthChecked(true);
   }, [isLoading]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!authChecked) return;
     const fetchData = async () => {
