@@ -16,8 +16,9 @@ const nextConfig = {
   generateEtags: false,
   webpack: (config, { isServer, dev }) => {
     if (!isServer) {
+      config.resolve = config.resolve || {};
       config.resolve.fallback = {
-        ...config.resolve.fallback,
+        ...(config.resolve.fallback || {}),
         bufferutil: false,
         'utf-8-validate': false,
       };
