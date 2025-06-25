@@ -1,7 +1,6 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -16,9 +15,9 @@ export async function GET(request: NextRequest) {
       token_hash,
     })
     if (!error) {
-      redirect(next)
+      return NextResponse.redirect(next)
     }
   }
 
-  redirect('/error?error=Invalid or expired confirmation link')
+  return NextResponse.redirect('/error?error=Invalid or expired confirmation link')
 }
