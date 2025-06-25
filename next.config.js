@@ -1,6 +1,6 @@
 const nextConfig = {
   experimental: {
-    serverActions: true,
+    serverActions: { enabled: true },
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },

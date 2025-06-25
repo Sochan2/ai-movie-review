@@ -22,7 +22,6 @@ export default function RecommendationsPage() {
     if (!isLoading) setAuthChecked(true);
   }, [isLoading]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!authChecked) return;
     const fetchData = async () => {
@@ -75,16 +74,15 @@ export default function RecommendationsPage() {
             )
           );
         }
-        setRecommendedMovies(recommendedData.slice(0, 7));
+        setRecommendedMovies(recommendedData);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to load recommendations. Please try again later.');
+        setError('Failed to load recommendations.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [user, authChecked, supabase]);
+  }, [authChecked, user, supabase, favoriteGenres, selectedServices]);
 
   if (!authChecked) {
     return (
