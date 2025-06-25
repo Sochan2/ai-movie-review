@@ -1,12 +1,15 @@
 import 'dotenv/config';
 import { getMovieDetails } from '../lib/tmdb';
+import { createClient } from '../utils/supabase/server';
 console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 console.log('SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
+const supabase = createClient();
 
 async function saveMoviesByIdRange(startId: number, endId: number) {
   for (let id = startId; id <= endId; id++) {
     try {
-      await getMovieDetails(id.toString());
+      await getMovieDetails(id.toString(), supabase);
       console.log(`映画ID ${id} を保存しました`);
     } catch (e) {
       console.log(`映画ID ${id} はスキップ`);

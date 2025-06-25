@@ -1,12 +1,18 @@
 import { Movie, UserPreferences, MovieReview } from '@/types/movie';
 import { getPopularMovies } from './tmdb';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// このモジュールはサーバー/クライアント両対応。
+// supabaseクライアントは必ず呼び出し元で分離して渡すこと（SSR: utils/supabase/server, CSR: utils/supabase/client）。
+// 直接importせず、型引数で受け取る設計を徹底すること。
 
 export async function getRecommendedMovies(
   preferences: UserPreferences,
-  userReviews: MovieReview[]
+  userReviews: MovieReview[],
+  supabase: SupabaseClient
 ): Promise<Movie[]> {
   // Get popular movies as base
-  const movies = await getPopularMovies();
+  const movies = await getPopularMovies(10, supabase);
   
   // Filter by user preferences
   return movies.filter(movie => {
@@ -76,7 +82,7 @@ export function calculateScore(
  * @param supabase Supabaseクライアント
  * @returns おすすめ映画リスト（スコア順）
  */
-export async function getRecommendedMoviesForUser(userId: string, supabase: any) {
+export async function getRecommendedMoviesForUser(userId: string, supabase: SupabaseClient) {
   // 1. プロファイル取得
   const { data: profile } = await supabase.from('user_profiles').select('likes, dislikes').eq('user_id', userId).single();
   if (!profile) return [];

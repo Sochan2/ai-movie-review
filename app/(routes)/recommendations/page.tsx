@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { MovieCard } from '@/components/movie-card';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/context/user-context';
@@ -16,7 +16,7 @@ export default function RecommendationsPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (!isLoading) setAuthChecked(true);
@@ -28,31 +28,38 @@ export default function RecommendationsPage() {
       try {
         setLoading(true);
         setError(null);
+        let userFavoriteGenres: string[] = [];
+        let userSelectedServices: string[] = [];
         if (user) {
           const { data: userData, error: userError } = await supabase
             .from('users')
             .select('selected_subscriptions, favorite_genres')
             .eq('id', user.id)
             .single();
-          if (userError) {
-            console.error('Error fetching user data:', userError);
+          const isRealError =
+            userError && (
+              (typeof userError === 'string' && (userError as string).length > 0) ||
+              (typeof userError === 'object' && userError !== null && 'message' in userError && (userError as any).message)
+            );
+          if (!isRealError) {
+            userSelectedServices = userData?.selected_subscriptions || [];
+            userFavoriteGenres = userData?.favorite_genres || [];
+            setSelectedServices(userSelectedServices);
+            setFavoriteGenres(userFavoriteGenres);
+          } else {
             setSelectedServices([]);
             setFavoriteGenres([]);
-          } else {
-            setSelectedServices(userData?.selected_subscriptions || []);
-            setFavoriteGenres(userData?.favorite_genres || []);
           }
         }
         let recommendedData: Movie[] = [];
-        if (favoriteGenres.length > 0) {
+        if (userFavoriteGenres.length > 0) {
           const genreMovies = await Promise.all(
-            favoriteGenres.slice(0, 3).map(async (genre) => {
+            userFavoriteGenres.slice(0, 3).map(async (genre) => {
               const genreId = genreMap[genre];
               if (genreId) {
                 try {
-                  return await getMoviesByGenre(genreId);
-                } catch (error) {
-                  console.error(`Error fetching movies for genre ${genre}:`, error);
+                  return await getMoviesByGenre(genreId, undefined, supabase);
+                } catch {
                   return [];
                 }
               }
@@ -60,29 +67,30 @@ export default function RecommendationsPage() {
             })
           );
           const allGenreMovies = genreMovies.flat();
-          const uniqueMovies = allGenreMovies.filter((movie, index, self) => 
+          const uniqueMovies = allGenreMovies.filter((movie, index, self) =>
             index === self.findIndex(m => m.id === movie.id)
           );
           recommendedData = uniqueMovies;
         } else {
-          recommendedData = await getTopRatedMovies();
+          recommendedData = await getTopRatedMovies(undefined, supabase);
         }
-        if (selectedServices.length > 0) {
-          recommendedData = recommendedData.filter(movie => 
-            movie.watchProviders?.some(provider => 
-              selectedServices.map(s => s.toLowerCase()).includes(provider.name.toLowerCase())
-            )
-          );
-        }
+        // 配信サービスでの絞り込みは一時的に無効化（watchProvidersが空配列のため）
+        // if (selectedServices.length > 0) {
+        //   recommendedData = recommendedData.filter(movie => 
+        //     (movie.watchProviders ?? []).some(provider => 
+        //       selectedServices.map(s => s.toLowerCase()).includes(provider.name.toLowerCase())
+        //     )
+        //   );
+        // }
         setRecommendedMovies(recommendedData);
-      } catch (error) {
+      } catch {
         setError('Failed to load recommendations.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [authChecked, user, supabase, favoriteGenres, selectedServices]);
+  }, [authChecked, user, supabase]);
 
   if (!authChecked) {
     return (

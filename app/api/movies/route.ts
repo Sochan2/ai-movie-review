@@ -105,7 +105,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('API Error:', error);
+    if (error instanceof Error) {
+      console.error('API Error:', error.message);
+    } else {
+      console.error('API Error:', error);
+    }
     return NextResponse.json(
       { error: 'Failed to fetch movies', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
