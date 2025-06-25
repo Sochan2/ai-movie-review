@@ -70,7 +70,7 @@ export default function LoginPage() {
       toast({
         title: "Check your email",
         description:
-          "We've sent you a confirmation link to complete the sign up process.",
+          "We have not sent you a confirmation link to complete the sign up process.",
       });
       setSuccess("Account created! Please confirm via email.");
     } catch (err) {
