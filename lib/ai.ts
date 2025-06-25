@@ -1,6 +1,6 @@
 import { log } from "console";
 import OpenAI from "openai";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/server";
 
 console.log("ai.ts loaded");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -65,10 +65,7 @@ export async function updateUserProfileWithAIResult(
   rating: number,
   selectedEmotions: string[]
 ) {
- const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+ const supabase = createClient();
   // 1. 既存プロファイル取得
   const { data: profile, error } = await supabase
     .from('user_profiles')
