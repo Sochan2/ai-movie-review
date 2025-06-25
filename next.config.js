@@ -3,6 +3,8 @@ const nextConfig = {
     serverActions: true,
     optimizeCss: true,
     optimizePackageImports: ['lucide-react', 'framer-motion'],
+    modern: true,
+    granularChunks: true,
   },
   images: {
     domains: ['image.tmdb.org', 'images.pexels.com'],
@@ -21,6 +23,10 @@ const nextConfig = {
         ...(config.resolve.fallback || {}),
         bufferutil: false,
         'utf-8-validate': false,
+        self: false,
+        fs: false,
+        path: false,
+        os: false,
       };
     }
     

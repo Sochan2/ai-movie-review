@@ -71,7 +71,7 @@ export default function DashboardPage() {
       }
     };
     fetchUserData();
-  }, [user, isLoading]);
+  }, [user, isLoading, supabase]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -82,7 +82,7 @@ export default function DashboardPage() {
       setRecommendedMovies(recs.slice(0, 5)); // 上位5件だけ表示
     };
     fetchRecommendations();
-  }, [user, isLoading]);
+  }, [user, isLoading, supabase]);
 
   const handleSubscriptionChange = async (serviceId: string) => {
     const updatedSubscriptions = selectedSubscriptions.includes(serviceId)
