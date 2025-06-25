@@ -12,14 +12,16 @@ import { MovieReviewForm } from '@/components/movie-review-form';
 import { EmotionTagSelector } from '@/components/emotion-tag-selector';
 import { createClient } from '@/utils/supabase/client';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useUser } from '@/context/user-context';
 import { Movie } from '@/types/movie';
 import { getMovieDetails } from '@/lib/tmdb';
 import { getJustWatchUrl, getProviderJustWatchUrl } from '@/lib/justwatch';
 import { updateUserProfileWithAIResult } from '@/lib/ai';
 
-export default function MovieDetailPage({ params }: { params: { id: string } }) {
+export default function MovieDetailPage() {
+  const params = useParams();
+  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : '';
   const router = useRouter();
   const { user, isLoading } = useUser();
   const [isMasterpiece, setIsMasterpiece] = useState(false);
@@ -35,17 +37,16 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
   const [notification, setNotification] = useState('');
   
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !id) return;
     const fetchMovieData = async () => {
       try {
         // 1. Supabaseからキャッシュ取得
         const { data: cachedMovie } = await supabase
           .from('movies')
           .select('id, title, poster_url, overview, genres, features, emotions, themes, rating, streamingServices, justWatchUrl, year, director, releaseDate, runtime, watchProviders')
-          .eq('id', params.id)
+          .eq('id', id)
           .single();
         if (cachedMovie) {
-          // Supabaseのカラム名とMovie型のプロパティ名を合わせる
           setMovie({
             ...cachedMovie,
             posterUrl: cachedMovie.poster_url,
@@ -54,7 +55,7 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
           return;
         }
         // 2. なければTMDB APIから取得
-        const movieData = await getMovieDetails(params.id);
+        const movieData = await getMovieDetails(id);
         setMovie(movieData);
       } catch (error) {
         console.error('Error fetching movie data:', error);
@@ -66,7 +67,7 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
         
         // Use fallback data on error
         const fallbackMovie: Movie = {
-          id: params.id,
+          id,
           title: 'Sample Movie',
           year: 2024,
           rating: 8.5,
@@ -90,23 +91,23 @@ export default function MovieDetailPage({ params }: { params: { id: string } }) 
       }
     };
     fetchMovieData();
-  }, [params.id, user, supabase, isLoading]);
+  }, [id, user, supabase, isLoading]);
 
   // Check if this movie is already a masterpiece for the user
   useEffect(() => {
-    if (!user || !params.id) return;
+    if (!user || !id) return;
     const checkMasterpiece = async () => {
       const { data, error } = await supabase
         .from('masterpieces')
         .select('id')
         .eq('user_id', user.id)
-        .eq('movie_id', params.id)
+        .eq('movie_id', id)
         .single();
       if (data) setIsMasterpiece(true);
       else setIsMasterpiece(false);
     };
     checkMasterpiece();
-  }, [user, params.id, supabase]);
+  }, [user, id, supabase]);
 
   const toggleMasterpiece = async () => {
     if (!user || !movie) return;
