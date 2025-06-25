@@ -29,7 +29,7 @@ export function HeroSection() {
     }, 6000);
     
     return () => clearInterval(interval);
-  }, [mounted]);
+  }, [mounted, backdropImages.length]);
 
   if (!mounted) {
     return null; // Prevent flash of incorrect content
