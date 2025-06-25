@@ -58,7 +58,7 @@ export default function MasterpiecesPage() {
       </div>
       {masterpieces.length === 0 ? (
         <div className="text-center text-muted-foreground py-24">
-          <p className="text-lg mb-4">You haven't registered any masterpieces yet.</p>
+          <p className="text-lg mb-4">You haven&apos;t registered any masterpieces yet.</p>
           <Button onClick={() => router.push("/")}>Discover Movies</Button>
         </div>
       ) : (
