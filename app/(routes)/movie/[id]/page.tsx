@@ -17,7 +17,6 @@ import { useUser } from '@/context/user-context';
 import { Movie } from '@/types/movie';
 import { getMovieDetails } from '@/lib/tmdb';
 import { getJustWatchUrl, getProviderJustWatchUrl } from '@/lib/justwatch';
-import { updateUserProfileWithAIResult } from '@/lib/ai';
 
 export default function MovieDetailPage() {
   const params = useParams();
@@ -196,8 +195,17 @@ const handleSubmitReview = async () => {
     const aiResult = await res.json();
     console.log('AI分析完了', aiResult);
 
-    // ここでプロファイルも更新
-    await updateUserProfileWithAIResult(user.id, aiResult, rating, selectedEmotions);
+    // ここでプロファイルも更新（API Route経由に変更）
+    await fetch('/api/update-profile-with-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        aiResult,
+        rating,
+        selectedEmotions,
+      }),
+    });
 
     // スコア計算用に最新プロファイルを取得し、点数をconsole出力
     const { data: updatedProfile } = await supabase
