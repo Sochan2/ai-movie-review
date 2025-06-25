@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
       {/* あなたへのおすすめセクション */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">あなたへのおすすめ</h2>
+        <h2 className="text-2xl font-bold mb-4">Your recommendation</h2>
         {recommendedMovies.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {recommendedMovies.map((movie) => (
@@ -128,7 +128,7 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="text-muted-foreground">おすすめ映画がありません。</div>
+          <div className="text-muted-foreground">There is no recommendation</div>
         )}
       </div>
 

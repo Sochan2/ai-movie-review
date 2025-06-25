@@ -1,5 +1,5 @@
 // JustWatch API client
-// Note: JustWatch doesn't have an official public API, so we'll use their website structure
+// Note: JustWatch does not have an official public API, so we'll use their website structure
 // and TMDB's watch/providers endpoint as a fallback
 
 export interface JustWatchProvider {
@@ -25,7 +25,7 @@ export function getJustWatchUrl(movieTitle: string, movieYear?: number): string 
 
 // Get JustWatch movie detail URL (if we can construct it)
 export function getJustWatchMovieUrl(movieTitle: string, movieYear?: number): string {
-  // JustWatch doesn't have a predictable URL structure, so we'll use search
+  // JustWatch does not have a predictable URL structure, so we'll use search
   // In a real implementation, you might want to use their API or scrape the search results
   const searchQuery = encodeURIComponent(`${movieTitle} ${movieYear || ''}`.trim());
   return `https://www.justwatch.com/us/search?q=${searchQuery}`;
