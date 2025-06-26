@@ -18,6 +18,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Film } from "lucide-react";
 import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
+import ReCAPTCHA from "react-google-recaptcha";
+
+// 型定義がない場合のための宣言
+// declare module 'react-google-recaptcha';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,6 +37,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
 
   // クリア関数
   const clearMessages = () => {
@@ -44,6 +51,26 @@ export default function LoginPage() {
     e.preventDefault();
     clearMessages();
     setIsLoading(true);
+    setRecaptchaError(null);
+
+    if (!recaptchaToken) {
+      setRecaptchaError("Please complete the reCAPTCHA.");
+      setIsLoading(false);
+      return;
+    }
+
+    // サーバーサイドでreCAPTCHA検証
+    const verifyRes = await fetch("/api/verify-recaptcha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: recaptchaToken }),
+    });
+    const verifyData = await verifyRes.json();
+    if (!verifyData.success) {
+      setRecaptchaError("reCAPTCHA verification failed. Please try again.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       await signInWithEmail(email, password);
@@ -149,7 +176,7 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            {(externalMessage || error || success) && (
+            {(externalMessage || error || success || recaptchaError) && (
               <Alert
                 variant={
                   success || externalMessage ? "default" : "destructive"
@@ -157,7 +184,7 @@ export default function LoginPage() {
                 className="mb-6"
               >
                 <AlertDescription>
-                  {externalMessage || error || success}
+                  {externalMessage || error || success || recaptchaError}
                 </AlertDescription>
               </Alert>
             )}
@@ -191,6 +218,16 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={isLoading}
+                    />
+                  </div>
+                )}
+
+                {!isForgotPassword && (
+                  <div className="flex justify-center pt-2">
+                    <ReCAPTCHA
+                      sitekey={recaptchaSiteKey}
+                      onChange={(token: string | null) => setRecaptchaToken(token)}
+                      onExpired={() => setRecaptchaToken(null)}
                     />
                   </div>
                 )}
