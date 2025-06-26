@@ -30,8 +30,11 @@ export default function RootLayout({
         >
           <UserProvider>
             <div className="relative min-h-screen bg-background">
-              <Header />
-              <main className="pt-16">{children}</main>
+              {/* Only show header if not on landing page */}
+              {typeof window !== 'undefined' && !window.location.pathname.includes('/landing') && <Header />}
+              <main className={typeof window !== 'undefined' && !window.location.pathname.includes('/landing') ? "pt-16" : ""}>
+                {children}
+              </main>
               <Toaster />
               <PerformanceMonitor />
             </div>
