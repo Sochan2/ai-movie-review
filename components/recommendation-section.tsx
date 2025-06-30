@@ -52,8 +52,13 @@ export function RecommendationSection() {
     }
   }, [isLoading]);
 
+  useEffect(() => {
+    console.log('RecommendationSection user:', user, 'isLoading:', isLoading);
+  }, [user, isLoading]);
+
   // Fetch user preferences (subscriptions, genres)
   const fetchUserPreferences = useCallback(async () => {
+    console.log('fetchUserPreferences user:', user);
     if (!user) return;
     try {
       // サブスクはusersテーブル
@@ -62,6 +67,7 @@ export function RecommendationSection() {
         .select('selected_subscriptions')
         .eq('id', user.id)
         .single();
+      console.log('fetchUserPreferences userData:', userData);
       // ジャンルはuser_profilesテーブル
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
@@ -74,7 +80,8 @@ export function RecommendationSection() {
         setPreferredGenres([]);
         return;
       }
-      setSelectedServices(userData?.selected_subscriptions || []);
+      setSelectedServices(Array.isArray(userData?.selected_subscriptions) ? userData.selected_subscriptions : []);
+      console.log('setSelectedServices直後:', userData?.selected_subscriptions);
       setPreferredGenres(profileData?.preferred_genres || profileData?.favorite_genres || []);
     } catch (error) {
       console.error('fetchUserPreferences error:', error);
@@ -139,18 +146,39 @@ export function RecommendationSection() {
 
   // Fetch user preferences first, then fetch movies
   useEffect(() => {
-    if (isLoading) return;
-    if (typeof user === 'undefined') return; // セッション復元待ち
-    if (!user) return; // 未ログイン
-    fetchUserPreferences();
+    if (!isLoading && user) {
+      fetchUserPreferences();
+    }
   }, [user, isLoading, fetchUserPreferences]);
+
+  // Ensure selectedServices/preferredGenres are always set from userData/profileData
+  useEffect(() => {
+    if (!isLoading && user) {
+      supabase
+        .from('users')
+        .select('selected_subscriptions')
+        .eq('id', user.id)
+        .single()
+        .then(({ data: userData }) => {
+          setSelectedServices(Array.isArray(userData?.selected_subscriptions) ? userData.selected_subscriptions : []);
+        });
+      supabase
+        .from('user_profiles')
+        .select('preferred_genres, favorite_genres')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data: profileData }) => {
+          setPreferredGenres(profileData?.preferred_genres || profileData?.favorite_genres || []);
+        });
+    }
+  }, [user, isLoading, supabase]);
 
   useEffect(() => {
     if (isLoading) return;
     if (typeof user === 'undefined') return;
     fetchTrendingMovies();
     fetchNewMovies();
-  }, [user, isLoading, selectedServices, preferredGenres, fetchTrendingMovies, fetchNewMovies]);
+  }, [user, isLoading, fetchTrendingMovies, fetchNewMovies]);
 
   // For You (AI) fetch
   useEffect(() => {
@@ -161,7 +189,16 @@ export function RecommendationSection() {
       setForYouLoading(true);
       setForYouError(null);
       try {
-        const movies = await getRecommendedMoviesForUser(user.id, supabase);
+        // デバッグ用ログ
+        console.log('user.id:', user.id);
+        console.log('selectedServices:', selectedServices);
+        console.log('preferredGenres:', preferredGenres);
+        let movies = await getRecommendedMoviesForUser(user.id, supabase);
+        // Fallback: if no recommendations, show trending movies
+        if (!movies || movies.length === 0) {
+          const trending = await supabase.from('movies').select('*').order('popularity', { ascending: false }).limit(5);
+          movies = (trending.data || []).map((m: any) => ({ ...m, posterUrl: m.poster_url }));
+        }
         setRecommendedMovies((movies || []).slice(0, 5));
       } catch (e) {
         console.error('fetchRecommendations error:', e);
@@ -171,9 +208,18 @@ export function RecommendationSection() {
       }
     };
     fetchRecommendations();
-  }, [user, isLoading, supabase]);
+  }, [user, isLoading, supabase, selectedServices, preferredGenres]);
 
-  if (!authChecked) {
+  useEffect(() => {
+    console.log('selectedServices:', selectedServices);
+  }, [selectedServices]);
+
+  useEffect(() => {
+    console.log('recommendedMovies:', recommendedMovies);
+  }, [recommendedMovies]);
+
+  // isLoading中はローディングUIのみ表示
+  if (isLoading) {
     return (
       <section className="py-24 bg-background">
         <div className="container mx-auto px-4">

@@ -84,49 +84,85 @@ export function calculateScore(
  */
 export async function getRecommendedMoviesForUser(userId: string, supabase: SupabaseClient) {
   // 1. プロファイル取得
-  const { data: profile } = await supabase.from('user_profiles').select('likes, dislikes').eq('user_id', userId).single();
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('likes, dislikes, preferred_genres, favorite_genres')
+    .eq('user_id', userId)
+    .single();
   if (!profile) return [];
 
-  // 2. 観た映画ID・レビュー取得
+  // 2. サブスク取得
+  const { data: userData } = await supabase
+    .from('users')
+    .select('selected_subscriptions')
+    .eq('id', userId)
+    .single();
+  const selectedSubscriptions = userData?.selected_subscriptions || [];
+  const preferredGenres = profile.preferred_genres || profile.favorite_genres || [];
+
+  // 3. 観た映画ID・レビュー取得
   const { data: reviews } = await supabase.from('reviews').select('*').eq('user_id', userId);
   const watchedIds = (reviews || []).map((r: { movie_id: string }) => r.movie_id);
 
-  // 3. 映画リスト取得（features, emotions, themesがmoviesテーブルにある前提）
+  // 4. 映画リスト取得
   const { data: movies } = await supabase.from('movies').select('*');
   if (!movies) return [];
+  const moviesWithPosterUrl = movies.map((m: any) => ({ ...m, posterUrl: m.poster_url }));
 
-  const moviesWithPosterUrl = movies.map((m: any) => ({
-    ...m,
-    posterUrl: m.poster_url,
-  }));
-  
-
-  /**
-   * 👇 コールドスタート対策：
-   * ユーザーのレビューが1本以下の場合は、
-   * 高評価（rating >= 4）をつけた映画のタグ（features, emotions, themes）と
-   * Jaccard類似度が高い映画をおすすめとして返す。
-   * 類似度 = 共通タグ数 / (ユーザー映画タグ数 + 候補映画タグ数 - 共通タグ数)
-   */
-  if ((reviews || []).length <= 1) {
-    // 高評価レビューを抽出
-    const highRated = (reviews || []).filter((r: { rating: number }) => r.rating >= 4);
-    if (highRated.length === 0) {
-      // 高評価レビューがなければ人気映画を返す
-      return moviesWithPosterUrl.slice(0, 20);
+  // --- Stage 1: レビュー0本 ---
+  if (!reviews || reviews.length === 0) {
+    // ジャンル・サブスクで絞った人気映画
+    let filtered = moviesWithPosterUrl;
+    let filteredByGenre = filtered;
+    let filteredBySub = filtered;
+    if (preferredGenres.length > 0) {
+      filteredByGenre = filtered.filter((movie: any) =>
+        (movie.genres || []).some((g: string) => preferredGenres.includes(g))
+      );
     }
-    // 高評価映画のタグを集約
+    // サブスクフィルタ: ユーザーのselectedSubscriptionsをmovie.providersの値（例: "Amazon Video" など）に合わせて完全一致で比較
+    filteredBySub = filtered.filter((movie: any) =>
+      (movie.streamingServices || movie.providers || []).some((provider: string) => selectedSubscriptions.includes(provider))
+    );
+    // AND条件
+    let filteredBoth = filteredByGenre;
+    if (selectedSubscriptions.length > 0) {
+      filteredBoth = filteredByGenre.filter((movie: any) =>
+        (movie.streamingServices || movie.providers || []).some((s: string) =>
+          selectedSubscriptions.some((sub: string) =>
+            s.toLowerCase().includes(sub.toLowerCase()) || sub.toLowerCase().includes(s.toLowerCase())
+          )
+        )
+      );
+    }
+    // 優先順位: AND→ジャンルのみ→サブスクのみ→全件
+    let result = filteredBoth;
+    if (result.length === 0 && preferredGenres.length > 0) {
+      result = filteredByGenre;
+    }
+    if (result.length === 0 && selectedSubscriptions.length > 0) {
+      result = filteredBySub;
+    }
+    if (result.length === 0) {
+      result = moviesWithPosterUrl;
+    }
+    result = result.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+    return result.slice(0, 20);
+  }
+
+  // --- Stage 2: レビュー1本 ---
+  if (reviews.length === 1) {
+    const review = reviews[0];
+    // レビューした映画のタグを集約
+    const movie = moviesWithPosterUrl.find((m: any) => m.id === review.movie_id);
     let userTags = new Set<string>();
-    for (const r of highRated) {
-      const movie = moviesWithPosterUrl.find((m: any) => m.id === r.movie_id);
-      if (movie) {
-        for (const tag of [
-          ...(movie.features || []),
-          ...(movie.emotions || []),
-          ...(movie.themes || [])
-        ]) {
-          userTags.add(tag);
-        }
+    if (movie) {
+      for (const tag of [
+        ...(movie.features || []),
+        ...(movie.emotions || []),
+        ...(movie.themes || [])
+      ]) {
+        userTags.add(tag);
       }
     }
     // 類似度計算
@@ -144,27 +180,73 @@ export async function getRecommendedMoviesForUser(userId: string, supabase: Supa
         const jaccard = union.size === 0 ? 0 : intersection.size / union.size;
         return { ...movie, similarity: jaccard };
       })
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 20); // 上位20件
+      .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+      .slice(0, 20);
     return recommendations;
   }
 
-  // 4. スコア計算＆観た映画除外（通常ロジック）
-  const recommended = (moviesWithPosterUrl as Movie[])
-    .filter((movie: Movie) => !watchedIds.includes(movie.id))
+  // --- Stage 3: レビュー2本以上 ---
+  let recommended = (moviesWithPosterUrl as Movie[])
     .map((movie: Movie) => {
-      // 映画のタグ配列を用意（features, emotions, themesを合算）
       const tags = [
         ...(movie.features || []),
         ...(movie.emotions || []),
         ...(movie.themes || [])
       ];
-      const score = calculateScore(profile.likes, profile.dislikes, tags);
+      // 自分がレビューした映画なら、自分のレビューのタグも加える
+      let userReviewTags: string[] = [];
+      const userReview = (reviews || []).find((r: any) => r.movie_id === movie.id);
+      if (userReview) {
+        userReviewTags = [
+          ...(userReview.features || []),
+          ...(userReview.emotions || []),
+          ...(userReview.themes || [])
+        ];
+      }
+      // タグのユニオン
+      const allTags = Array.from(new Set([...tags, ...userReviewTags]));
+      const score = calculateScore(profile.likes, profile.dislikes, allTags);
       return { ...movie, score };
-    })
-    .sort((a: Movie & { score: number }, b: Movie & { score: number }) => b.score - a.score);
+    });
 
-  return recommended;
+  // スコア>0の映画
+  let scored = recommended.filter(m => m.score && m.score > 0);
+  // スコア0の映画
+  let zeroScored = recommended.filter(m => !m.score || m.score === 0);
+
+  // 2. スコア0の中でpreferredGenresやselectedSubscriptionsに合致する映画を優先
+  let genreOrSubMatched = zeroScored.filter(m => {
+    const genreMatch = (preferredGenres.length === 0) ? false : (m.genres || []).some((g: string) => preferredGenres.includes(g));
+    const subMatch = (selectedSubscriptions.length === 0)
+      ? false
+      : (Array.isArray(m.streamingServices)
+          ? m.streamingServices.some((provider: string) => selectedSubscriptions.includes(provider))
+          : false);
+    return genreMatch || subMatch;
+  });
+  // 残りのスコア0
+  let restZeroScored = zeroScored.filter(m => !genreOrSubMatched.includes(m));
+
+  // 3. スコア0の中から高評価・人気映画を数件ピックアップ（例: 3件）
+  let trending = restZeroScored
+    .sort((a, b) => {
+      const popA = typeof (a as any).popularity === 'number' ? (a as any).popularity : 0;
+      const popB = typeof (b as any).popularity === 'number' ? (b as any).popularity : 0;
+      return popB - popA;
+    })
+    .slice(0, 3);
+
+  // 合体して重複を除外
+  let allRecommended = [...scored, ...genreOrSubMatched, ...trending];
+  const seen = new Set();
+  const uniqueRecommended = allRecommended.filter(m => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+
+  // 最大20件返す
+  return uniqueRecommended.slice(0, 5);
 }
 
 

@@ -1,15 +1,22 @@
 import { Movie, StreamingService, Genre, EmotionTag } from '@/types/movie';
 
 export const availableStreamingServices: StreamingService[] = [
-  { id: 'netflix', name: 'Netflix' },
-  { id: 'amazon', name: 'Amazon Prime' },
-  { id: 'disney', name: 'Disney+' },
-  { id: 'hulu', name: 'Hulu' },
-  { id: 'hbo', name: 'HBO Max' },
-  { id: 'apple', name: 'Apple TV+' },
-  { id: 'paramount', name: 'Paramount+' },
-  { id: 'peacock', name: 'Peacock' }
-  // ロゴは今は使わない。将来的に追加可。
+  { id: 'Amazon Video', name: 'Amazon Video' },
+  { id: 'Apple TV', name: 'Apple TV' },
+  {id: 'Netflix', name:'Netflix'},
+  {id:'Disney', name:'Disney+'},
+  { id: 'Google Play Movies', name: 'Google Play Movies' },
+  { id: 'YouTube', name: 'YouTube' },
+  { id: 'Fandango At Home', name: 'Fandango At Home' },
+  { id: 'Microsoft Store', name: 'Microsoft Store' },
+  { id: 'Spectrum On Demand', name: 'Spectrum On Demand' },
+  { id: 'Max', name: 'Max' },
+  { id: 'Max Amazon Channel', name: 'Max Amazon Channel' },
+  { id: 'Cinemax Amazon Channel', name: 'Cinemax Amazon Channel' },
+  { id: 'Cinemax Apple TV Channel', name: 'Cinemax Apple TV Channel' },
+  { id: 'Tubi TV', name: 'Tubi TV' },
+ 
+  // 必要に応じて他のproviders値も追加
 ];
 
 export const genreOptions: Genre[] = [
