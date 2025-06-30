@@ -74,7 +74,8 @@ export async function updateUserProfileWithAIResult(
   userId: string,
   aiResult: { features: string[]; emotions: string[]; themes: string[]; tag_sentiment: Record<string, "positive" | "negative"> },
   rating: number,
-  selectedEmotions: string[]
+  selectedEmotions: string[],
+  movieId: string
 ) {
   const { createClient } = await import("@/utils/supabase/server");
   const supabase = createClient();
@@ -125,4 +126,41 @@ export async function updateUserProfileWithAIResult(
     dislikes,
     updated_at: new Date().toISOString()
   });
+
+  // --- 集約ロジック追加 ---
+  if (movieId) {
+    // 1. その映画の全レビューを取得
+    const { data: reviews } = await supabase
+      .from('reviews')
+      .select('features, emotions, themes')
+      .eq('movie_id', movieId);
+    // 2. features, emotions, themesごとに頻度集計
+    const safeReviews = reviews || [];
+    const countTags = (arrs: any[], key: string) => {
+      const counts: Record<string, number> = {};
+      for (const row of arrs) {
+        for (const tag of row[key] || []) {
+          counts[tag] = (counts[tag] || 0) + 1;
+        }
+      }
+      return counts;
+    };
+    const featuresCount = countTags(safeReviews, 'features');
+    const emotionsCount = countTags(safeReviews, 'emotions');
+    const themesCount = countTags(safeReviews, 'themes');
+    // 3. 頻度順に上位10件だけ抽出
+    const topN = (counts: Record<string, number>) => Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([tag]) => tag);
+    const topFeatures = topN(featuresCount);
+    const topEmotions = topN(emotionsCount);
+    const topThemes = topN(themesCount);
+    // 4. moviesテーブルをupdate
+    await supabase.from('movies').update({
+      features: topFeatures,
+      emotions: topEmotions,
+      themes: topThemes
+    }).eq('id', movieId);
+  }
 } 

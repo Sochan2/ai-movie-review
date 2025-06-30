@@ -15,12 +15,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { availableStreamingServices, genreOptions } from '@/lib/mock-data';
+import { createClient } from '@/utils/supabase/client';
+import { useUser } from '@/context/user-context';
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const { user } = useUser();
+  const supabase = createClient();
   
   const totalSteps = 2;
   const progress = (step / totalSteps) * 100;
@@ -41,12 +45,22 @@ export default function OnboardingPage() {
     );
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // In a real app, save preferences to the user's profile
-      console.log('Preferences saved:', { selectedServices, selectedGenres });
+      // サブスク・ジャンルをSupabaseに保存
+      if (user) {
+        // サブスク保存
+        await supabase
+          .from('users')
+          .update({ selected_subscriptions: selectedServices })
+          .eq('id', user.id);
+        // ジャンル保存
+        await supabase
+          .from('user_profiles')
+          .upsert({ user_id: user.id, favorite_genres: selectedGenres });
+      }
       router.push('/recommendations');
     }
   };

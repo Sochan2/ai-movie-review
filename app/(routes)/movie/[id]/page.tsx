@@ -166,6 +166,22 @@ const handleSubmitReview = async () => {
   try {
     console.log('レビュー送信開始');
 
+    // まず映画をmoviesテーブルにupsert
+    const movieUpsertData = {
+      id: movie.id,
+      title: movie.title,
+      genres: movie.genres,
+      overview: movie.overview,
+      poster_url: movie.posterUrl,
+      // 必要に応じて他のカラムも追加
+    };
+    const { error: movieUpsertError } = await supabase.from('movies').upsert(movieUpsertData);
+    if (movieUpsertError) {
+      setNotification('Fail to store movie: ' + (typeof movieUpsertError === 'object' && movieUpsertError && 'message' in movieUpsertError ? movieUpsertError.message : String(movieUpsertError)));
+      setIsSubmitting(false);
+      return;
+    }
+
     // 送信データをまとめて変数に
     const reviewData = {
       movie_id: movie.id,
@@ -179,24 +195,37 @@ const handleSubmitReview = async () => {
     console.log('送信データ:', reviewData);
 
     const { error } = await supabase.from('reviews').upsert(reviewData);
+    console.log('upsert error:', error);
+    if (error) {
+      setNotification('Fail to store the review: ' + (typeof error === 'object' && error && 'message' in error ? error.message : String(error)));
+      setIsSubmitting(false);
+      return;
+    }
     console.log('Supabase upsert完了', error);
 
     console.log('AI分析開始');
-    // --- ここからAPI Route経由でAI分析 ---
+    // -Fal oからAPI Route経由でAI分析 ---
     const res = await fetch("/api/analyze-review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        userId: user.id,
         reviewText: review,
         rating,
         emotions: selectedEmotions,
       }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setNotification('Fail to AI analyze: ' + (err && typeof err === 'object' && 'error' in err ? err.error : res.statusText));
+      setIsSubmitting(false);
+      return;
+    }
     const aiResult = await res.json();
     console.log('AI分析完了', aiResult);
 
     // ここでプロファイルも更新（API Route経由に変更）
-    await fetch('/api/update-profile-with-ai', {
+    const profileRes = await fetch('/api/update-profile-with-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -206,6 +235,12 @@ const handleSubmitReview = async () => {
         selectedEmotions,
       }),
     });
+    if (!profileRes.ok) {
+      const err = await profileRes.json().catch(() => ({}));
+      setNotification('Fail to update recommendation profile: ' + (err && typeof err === 'object' && 'error' in err ? err.error : profileRes.statusText));
+      setIsSubmitting(false);
+      return;
+    }
 
     // スコア計算用に最新プロファイルを取得し、点数をconsole出力
     const { data: updatedProfile } = await supabase
@@ -238,7 +273,9 @@ const handleSubmitReview = async () => {
         .eq('id', movie.id);
     
       if (updateError) {
-        console.error('映画タグの保存エラー:', updateError);
+        setNotification('Fail to store movie tag: ' + (typeof updateError === 'object' && updateError && 'message' in updateError ? updateError.message : String(updateError)));
+        setIsSubmitting(false);
+        return;
       } else {
         console.log('映画タグの保存成功');
       }
@@ -257,7 +294,9 @@ const handleSubmitReview = async () => {
       };
       const { error: reviewUpdateError } = await supabase.from('reviews').upsert(reviewUpdateData);
       if (reviewUpdateError) {
-        console.error('tag_sentiment付きレビュー保存エラー:', reviewUpdateError);
+        setNotification('Fail to storetag_sentiment review: ' + (typeof reviewUpdateError === 'object' && reviewUpdateError && 'message' in reviewUpdateError ? reviewUpdateError.message : String(reviewUpdateError)));
+        setIsSubmitting(false);
+        return;
       } else {
         console.log('tag_sentiment付きレビュー保存成功');
       }
@@ -269,6 +308,7 @@ const handleSubmitReview = async () => {
     setSelectedEmotions([]);
   } catch (error) {
     console.error('Error submitting review:', error);
+    setNotification('Un expected error: ' + (typeof error === 'object' && error && 'message' in error ? error.message : String(error)));
   } finally {
     console.log('finally reached');
     setIsSubmitting(false);
