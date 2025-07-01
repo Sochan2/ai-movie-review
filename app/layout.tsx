@@ -8,6 +8,8 @@ import { UserProvider } from '@/context/user-context';
 import { PerformanceMonitor } from '@/components/performance-monitor';
 
 const inter = Inter({ subsets: ['latin'] });
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID!;
+
 
 export const metadata: Metadata = {
   title: 'MyMasterpiece | Find Your Next Favorite Movie',
@@ -21,6 +23,26 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Google Analytics */}
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="gtag-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}');
+              `}
+            </Script>
+          </>
+        )}
+        {/* other head */}
+      </head>
       <body className={`${inter.className} antialiased`}>
         <ThemeProvider 
           attribute="class" 
