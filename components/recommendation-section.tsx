@@ -80,7 +80,11 @@ export function RecommendationSection() {
         setPreferredGenres([]);
         return;
       }
-      setSelectedServices(Array.isArray(userData?.selected_subscriptions) ? userData.selected_subscriptions : []);
+      setSelectedServices(
+        userData && Array.isArray(userData.selected_subscriptions)
+          ? userData.selected_subscriptions
+          : []
+      );
       console.log('setSelectedServices直後:', userData?.selected_subscriptions);
       setPreferredGenres(profileData?.preferred_genres || profileData?.favorite_genres || []);
     } catch (error) {
@@ -160,7 +164,11 @@ export function RecommendationSection() {
         .eq('id', user.id)
         .single()
         .then(({ data: userData }) => {
-          setSelectedServices(Array.isArray(userData?.selected_subscriptions) ? userData.selected_subscriptions : []);
+          setSelectedServices(
+            userData && Array.isArray(userData.selected_subscriptions)
+              ? userData.selected_subscriptions
+              : []
+          );
         });
       supabase
         .from('user_profiles')

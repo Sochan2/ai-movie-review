@@ -6,6 +6,7 @@ import Header from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
 import { UserProvider } from '@/context/user-context';
 import { PerformanceMonitor } from '@/components/performance-monitor';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID!;
