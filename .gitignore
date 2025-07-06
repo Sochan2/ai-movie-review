@@ -32,3 +32,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backup files
+*.tar.gz
+*.zip
+*.backup
+github-main-backup-*.tar.gz
+
+# large files
+*.log
+*.tmp
+*.cache
