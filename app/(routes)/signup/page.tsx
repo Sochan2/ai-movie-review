@@ -49,7 +49,7 @@ export default function SignupPage() {
     setIsLoading(true);
     try {
       await signUpWithEmail(email, password);
-      setSuccess("Account created! Please check your email to confirm your account.");
+      router.push(`/signup/check-email?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       console.error('Signup error:', err);
       
