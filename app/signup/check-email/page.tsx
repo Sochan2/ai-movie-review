@@ -32,7 +32,7 @@ export default function CheckEmailPage() {
           <CardHeader>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              We've sent a confirmation link to <b>{email}</b>.<br />
+              We&apos;ve sent a confirmation link to <b>{email}</b>.<br />
               Please check your inbox and click the link to verify your email address.
             </CardDescription>
           </CardHeader>
@@ -52,7 +52,7 @@ export default function CheckEmailPage() {
                 {resent ? "Email resent!" : "Resend email"}
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                (Check your spam folder if you don't see it.)
+                (Check your spam folder if you don&apos;t see it.)
               </p>
             </div>
           </CardContent>
