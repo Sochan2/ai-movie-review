@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes that do not require authentication
-  if (pathname === '/' || pathname === '/login' || pathname.startsWith('/auth/') || pathname.startsWith('/api/')) {
+  if (pathname === '/' || pathname === '/login' || pathname === '/signup' || pathname.startsWith('/auth/') || pathname.startsWith('/api/')) {
     return response
   }
 

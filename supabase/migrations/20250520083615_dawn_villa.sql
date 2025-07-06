@@ -14,6 +14,7 @@
     - Enable RLS on users table
     - Add policies for authenticated users to:
       - Read their own data
+      - Insert their own data
       - Update their own data
 */
 
@@ -34,6 +35,13 @@ CREATE POLICY "Users can read own data"
   FOR SELECT
   TO authenticated
   USING (auth.uid() = id);
+
+-- Policy to allow users to insert their own data
+CREATE POLICY "Users can insert own data"
+  ON users
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = id);
 
 -- Policy to allow users to update their own data
 CREATE POLICY "Users can update own data"

@@ -1,10 +1,10 @@
 import 'dotenv/config';
 import { getMovieDetails } from '../lib/tmdb';
-import { createClient } from '../utils/supabase/server';
+import { supabaseAdmin } from '../utils/supabase/admin';
 console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 console.log('SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-const supabase = createClient();
+const supabase = supabaseAdmin;
 
 async function saveMoviesByIdRange(startId: number, endId: number) {
   for (let id = startId; id <= endId; id++) {
@@ -20,5 +20,5 @@ async function saveMoviesByIdRange(startId: number, endId: number) {
   console.log('ID範囲の映画保存が完了しました');
 }
 
-// 例: 1〜10000まで保存. Nex is from 4511
-saveMoviesByIdRange(4511, 10000); 
+// 例: 1〜10000まで保存. Nex is from 7662
+saveMoviesByIdRange(7662, 10000); 

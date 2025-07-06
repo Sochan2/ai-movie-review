@@ -90,6 +90,17 @@ export default function LoginPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
+
+    // 空欄チェックを追加
+    if (!email) {
+      setError("Please enter your email address.");
+      return;
+    }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -263,12 +274,15 @@ export default function LoginPage() {
                       </Button>
                       <Button
                         type="button"
-                        onClick={handleSignUp}
+                        onClick={() => {
+                          console.log("Sign Up button clicked");
+                          window.location.href = "/signup";
+                        }}
                         variant="outline"
                         className="w-full"
                         disabled={isLoading}
                       >
-                        {isLoading ? "Creating account..." : "Sign Up"}
+                        Sign Up
                       </Button>
                       <Button
                         type="button"
