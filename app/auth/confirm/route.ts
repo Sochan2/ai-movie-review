@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams, origin } = new URL(request.url)
-  const token_hash = searchParams.get('token_hash')
+  const token_hash = searchParams.get('token_hash') || searchParams.get('token');
   const type = searchParams.get('type') as EmailOtpType | null
 
   // Debug logging
