@@ -1,48 +1,29 @@
 // utils/supabase/server.ts
-import { cookies } from 'next/headers'
+import { cookies as nextCookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
-export const createClient = () => {
+// 新しいcreateClient: cookiesを引数で受け取る
+export const createClient = (cookieStore = nextCookies()) => {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set in environment variables.');
   }
   if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set in environment variables.');
   }
-  const cookieStore = cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        async get(name: string) {
-          const cookiesStore = await cookieStore;
-          return cookiesStore.get(name)?.value;
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-        async set(name: string, value: string, options: CookieOptions) {
-          const cookiesStore = await cookieStore;
-          try {
-            cookiesStore.set({ name, value, ...options });
-          } catch (error) {
-            if (error instanceof Error) {
-              console.error('Cookie set error:', error.message);
-            } else {
-              console.error('Cookie set error:', error);
-            }
-          }
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
         },
-        async remove(name: string, options: CookieOptions) {
-          const cookiesStore = await cookieStore;
-          try {
-            cookiesStore.set({ name, value: '', ...options });
-          } catch (error) {
-            if (error instanceof Error) {
-              console.error('Cookie remove error:', error.message);
-            } else {
-              console.error('Cookie remove error:', error);
-            }
-          }
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options })
         },
       },
     }

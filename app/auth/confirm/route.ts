@@ -1,6 +1,7 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams, origin } = new URL(request.url)
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   console.log('Supabase email confirmation:', { token_hash, type })
 
   if (token_hash && type) {
-    const supabase = createClient()
+    const supabase = createClient(cookies())
     const { error } = await supabase.auth.verifyOtp({
       type,
       token_hash,
