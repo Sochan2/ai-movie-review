@@ -1,9 +1,11 @@
 // utils/supabase/server.ts
 import { cookies as nextCookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
+import type { CookieOptions } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
 
-// 新しいcreateClient: cookiesを引数で受け取る
-export const createClient = (cookieStore = nextCookies()) => {
+export const createClient = (cookieStore = nextCookies()): SupabaseClient<Database> => {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set in environment variables.');
   }
@@ -11,7 +13,7 @@ export const createClient = (cookieStore = nextCookies()) => {
     throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set in environment variables.');
   }
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -27,7 +29,7 @@ export const createClient = (cookieStore = nextCookies()) => {
         },
       },
     }
-  )
+  ) as unknown as SupabaseClient<Database>;
 }
 
 

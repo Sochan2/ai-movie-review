@@ -88,33 +88,37 @@ export async function updateUserProfileWithAIResult(
 
   // 2. likes/dislikesを更新
   const tags = [...aiResult.features, ...aiResult.emotions, ...aiResult.themes];
-  let likes = profile?.likes || {};
-  let dislikes = profile?.dislikes || {};
+  let likes = (profile?.likes as Record<string, number>) || {};
+  let dislikes = (profile?.dislikes as Record<string, number>) || {};
   const sentiment = aiResult.tag_sentiment || {};
+
+  // Record<string, number>として扱う
+  const getLikeCount = (obj: Record<string, number>, tag: string) =>
+    typeof obj?.[tag] === 'number' ? obj[tag] : 0;
 
   if (rating >= 4) {
     for (const tag in sentiment) {
       if (sentiment[tag] === 'positive') {
-        likes[tag] = (likes[tag] || 0) + 1;
+        likes[tag] = getLikeCount(likes, tag) + 1;
       }
     }
     // 手動選択の感情タグで、tag_sentimentに含まれていないものもlikesに加算
     for (const tag of selectedEmotions) {
       if (!(tag in sentiment)) {
-        likes[tag] = (likes[tag] || 0) + 1;
+        likes[tag] = getLikeCount(likes, tag) + 1;
       }
     }
   }
   if (rating <= 3) {
     for (const tag in sentiment) {
       if (sentiment[tag] === 'negative') {
-        dislikes[tag] = (dislikes[tag] || 0) + 1;
+        dislikes[tag] = getLikeCount(dislikes, tag) + 1;
       }
     }
     // 手動選択の感情タグで、tag_sentimentに含まれていないものもdislikesに加算
     for (const tag of selectedEmotions) {
       if (!(tag in sentiment)) {
-        dislikes[tag] = (dislikes[tag] || 0) + 1;
+        dislikes[tag] = getLikeCount(dislikes, tag) + 1;
       }
     }
   }

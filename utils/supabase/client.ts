@@ -1,16 +1,15 @@
 // utils/supabase/client.ts
-import { createClient as createServerClient } from '@supabase/supabase-js'
+import { createClient as createServerClient, SupabaseClient } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
 
 declare global {
   interface Window {
-    _supabase?: SupabaseClient;
+    _supabase?: SupabaseClient<Database>;
   }
 }
 
-// グローバル変数をwindowにアタッチしてシングルトン化
-export function createClient() {
+export function createClient(): SupabaseClient<Database> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set in environment variables.');
   }
@@ -19,18 +18,17 @@ export function createClient() {
   }
   if (typeof window !== 'undefined') {
     if (!window._supabase) {
-      window._supabase = createBrowserClient(
+      window._supabase = createBrowserClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      ) as unknown as SupabaseClient<Database>;
     }
     return window._supabase;
   } else {
-    // SSRでは@supabase/supabase-jsのcreateClientを使う
-    return createServerClient(
+    return createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    ) as unknown as SupabaseClient<Database>;
   }
 }
 

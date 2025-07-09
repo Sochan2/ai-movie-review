@@ -45,11 +45,12 @@ export default function MovieDetailPage() {
           .select('id, title, poster_url, overview, genres, features, emotions, themes, rating, streamingServices, justWatchUrl, year, director, releaseDate, runtime, watchProviders')
           .eq('id', id)
           .single();
-        if (cachedMovie) {
+        if (cachedMovie && typeof cachedMovie === 'object') {
+          const movieObj = cachedMovie as Record<string, any>;
           setMovie({
-            ...cachedMovie,
-            posterUrl: cachedMovie.poster_url,
-          });
+            ...movieObj,
+            posterUrl: movieObj.poster_url,
+          } as Movie);
           setLoading(false);
           return;
         }
@@ -256,8 +257,10 @@ const handleSubmitReview = async () => {
         ...(aiResult.themes || [])
       ];
       // スコア計算
+      const likes = (updatedProfile.likes && typeof updatedProfile.likes === 'object' && !Array.isArray(updatedProfile.likes)) ? updatedProfile.likes as Record<string, number> : {};
+      const dislikes = (updatedProfile.dislikes && typeof updatedProfile.dislikes === 'object' && !Array.isArray(updatedProfile.dislikes)) ? updatedProfile.dislikes as Record<string, number> : {};
       const { calculateScore } = await import('@/lib/recommendations');
-      const score = calculateScore(updatedProfile.likes, updatedProfile.dislikes, tags);
+      const score = calculateScore(likes, dislikes, tags);
       console.log('この映画のあなた向けスコア:', score);
     }
 

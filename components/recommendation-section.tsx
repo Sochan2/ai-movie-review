@@ -61,21 +61,14 @@ export function RecommendationSection() {
     console.log('fetchUserPreferences user:', user);
     if (!user) return;
     try {
-      // サブスクはusersテーブル
+      // サブスクとジャンルはusersテーブルから取得
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('selected_subscriptions')
+        .select('selected_subscriptions, favorite_genres')
         .eq('id', user.id)
         .single();
-      console.log('fetchUserPreferences userData:', userData);
-      // ジャンルはuser_profilesテーブル
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('preferred_genres, favorite_genres')
-        .eq('user_id', user.id)
-        .single();
 
-      if (userError || profileError) {
+      if (userError) {
         setSelectedServices([]);
         setPreferredGenres([]);
         return;
@@ -85,8 +78,7 @@ export function RecommendationSection() {
           ? userData.selected_subscriptions
           : []
       );
-      console.log('setSelectedServices直後:', userData?.selected_subscriptions);
-      setPreferredGenres(profileData?.preferred_genres || profileData?.favorite_genres || []);
+      setPreferredGenres(userData?.favorite_genres || []);
     } catch (error) {
       console.error('fetchUserPreferences error:', error);
       setSelectedServices([]);
@@ -160,7 +152,7 @@ export function RecommendationSection() {
     if (!isLoading && user) {
       supabase
         .from('users')
-        .select('selected_subscriptions')
+        .select('selected_subscriptions, favorite_genres')
         .eq('id', user.id)
         .single()
         .then(({ data: userData }) => {
@@ -169,14 +161,7 @@ export function RecommendationSection() {
               ? userData.selected_subscriptions
               : []
           );
-        });
-      supabase
-        .from('user_profiles')
-        .select('preferred_genres, favorite_genres')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data: profileData }) => {
-          setPreferredGenres(profileData?.preferred_genres || profileData?.favorite_genres || []);
+          setPreferredGenres(userData?.favorite_genres || []);
         });
     }
   }, [user, isLoading, supabase]);

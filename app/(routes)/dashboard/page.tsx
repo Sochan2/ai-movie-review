@@ -85,6 +85,7 @@ export default function DashboardPage() {
   }, [user, isLoading, supabase]);
 
   const handleSubscriptionChange = async (serviceId: string) => {
+    if (!user) return; // Guard against null user
     const updatedSubscriptions = selectedSubscriptions.includes(serviceId)
       ? selectedSubscriptions.filter(id => id !== serviceId)
       : [...selectedSubscriptions, serviceId];
@@ -95,7 +96,7 @@ export default function DashboardPage() {
       const { error } = await supabase
         .from('users')
         .update({ selected_subscriptions: updatedSubscriptions })
-        .eq('id', user?.id);
+        .eq('id', user.id); // user.id is guaranteed to be string here
 
       if (error) throw error;
     } catch (error) {
