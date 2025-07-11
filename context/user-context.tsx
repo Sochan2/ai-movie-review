@@ -29,6 +29,8 @@ interface UserContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePreferences: (preferences: Preferences) => Promise<void>;
+  signInWithOtp: (email: string) => Promise<void>;
+  signUpWithTestEmail: (password: string) => Promise<void>; // テスト用
 }
 
 const UserContext = createContext<UserContextType>({
@@ -41,6 +43,8 @@ const UserContext = createContext<UserContextType>({
   signOut: async () => {},
   resetPassword: async () => {},
   updatePreferences: async () => {},
+  signInWithOtp: async () => {},
+  signUpWithTestEmail: async () => {}, // テスト用
 });
 
 export const useUser = () => useContext(UserContext);
@@ -67,11 +71,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    let initialized = false;
+    let unsubscribed = false;
+    // まずgetSessionで即座に状態を反映
+    supabase.auth.getSession().then((result) => {
+      if (!unsubscribed) {
+        setUser(result.data.session?.user || null);
+        setIsLoading(false);
+      }
+    });
+    // onAuthStateChangeで状態変化を監視
     const { data } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        // if (process.env.NODE_ENV !== 'production') {
+        //   console.log('onAuthStateChange event:', _event, 'session:', session);
+        // }
         setUser(session?.user ?? null);
-        
+        if (!unsubscribed) {
+          setIsLoading(false);
+        }
         // 初回サインイン時にプロフィールを作成
         if (session?.user && _event === 'SIGNED_IN') {
           try {
@@ -79,21 +96,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
               display_name: session.user.email?.split('@')[0] || 'Unknown',
               is_anonymous: false,
             });
-            console.log('User profile created/updated on auth state change');
+            // if (process.env.NODE_ENV !== 'production') {
+            //   console.log('User profile created/updated on auth state change');
+            // }
           } catch (profileError) {
-            console.error('Failed to create/update user profile on auth state change:', profileError);
+            // if (process.env.NODE_ENV !== 'production') {
+            //   console.error('Failed to create/update user profile on auth state change:', profileError);
+            // }
           }
-        }
-        
-        if (!initialized) {
-          setIsLoading(false);
-          initialized = true;
         }
       }
     );
-    // getSessionでonAuthStateChangeを必ず発火させる
-    supabase.auth.getSession();
     return () => {
+      unsubscribed = true;
       data.subscription.unsubscribe();
     };
   }, [router, toast]);
@@ -112,7 +127,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
       if (error) throw error;
     } catch (error) {
-      console.error('Google sign in error:', error);
+      // console.error('Google sign in error:', error);
       throw error;
     }
   };
@@ -133,39 +148,65 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           display_name: data.user.email?.split('@')[0] || 'Unknown',
           is_anonymous: false,
         });
-        console.log('User profile created/updated successfully');
+        // console.log('User profile created/updated successfully');
       } catch (profileError) {
-        console.error('Failed to create/update user profile:', profileError);
+        // console.error('Failed to create/update user profile:', profileError);
         // プロフィール作成に失敗してもサインインは続行
       }
     }
   };
 
+  const signInWithOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) throw error;
+  };
+
   const signUpWithEmail = async (email: string, password: string) => {
-    const maxRetries = 3;
+    const maxRetries = 5; // リトライ回数を増やす
     let lastError: any = null;
+
+    // 開発環境ではレート制限を回避するための対策
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const baseEmail = email.split('@')[0];
+    const domain = email.split('@')[1] || 'gmail.com';
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        // 開発環境では毎回異なるメールアドレスを使用
+        let testEmail = email;
+        if (isDevelopment && attempt > 1) {
+          const timestamp = Date.now();
+          const random = Math.random().toString(36).substring(2, 8);
+          testEmail = `${baseEmail}+${timestamp}${random}@${domain}`;
+          // console.log(`Using test email for attempt ${attempt}:`, testEmail);
+        }
+
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: testEmail,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/confirm`,
+            emailRedirectTo: `${window.location.origin}/auth/verified`,
           },
         });
         
         if (error) {
-          console.error(`Signup attempt ${attempt} error:`, error);
+          // console.error(`Signup attempt ${attempt} error:`, error);
           
-          // 429エラーの場合、リトライを試みる
+          // レート制限エラーの場合、より長い待機時間を設定
           if (error.message.includes('rate limit') || error.message.includes('429')) {
             lastError = new Error(`Too many signup attempts (attempt ${attempt}/${maxRetries}). Please wait a few minutes before trying again.`);
             
             if (attempt < maxRetries) {
-              // 指数バックオフで待機（1秒、2秒、4秒）
-              const waitTime = Math.pow(2, attempt - 1) * 1000;
-              console.log(`Waiting ${waitTime}ms before retry...`);
+              // 開発環境ではより長い待機時間（5秒、10秒、15秒、20秒）
+              const waitTime = isDevelopment 
+                ? attempt * 5000 
+                : Math.pow(2, attempt - 1) * 1000;
+              // console.log(`Waiting ${waitTime}ms before retry...`);
               await new Promise(resolve => setTimeout(resolve, waitTime));
               continue;
             }
@@ -175,21 +216,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
 
         // サインアップ成功 - プロフィール作成は初回サインイン時に行う
-        console.log('Signup successful, user created:', data.user?.id);
+        // console.log('Signup successful, user created:', data.user?.id);
         
         // 成功したらループを抜ける
         return;
         
       } catch (error: any) {
-        console.error(`Signup attempt ${attempt} failed:`, error);
+        // console.error(`Signup attempt ${attempt} failed:`, error);
         lastError = error;
         
-        // 429エラー以外の場合は即座にエラーを投げる
+        // レート制限エラー以外の場合は即座にエラーを投げる
         if (!error.message?.includes('rate limit') && !error.message?.includes('429')) {
           throw error;
         }
         
-        // 最後の試行で429エラーの場合
+        // 最後の試行でレート制限エラーの場合
         if (attempt === maxRetries) {
           throw lastError;
         }
@@ -214,6 +255,35 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUserProfile(user.id, preferences);
   };
 
+  const signUpWithTestEmail = async (password: string) => {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const baseEmail = 'testuser'; // テスト用のメールアドレスのベース
+    const domain = 'example.com'; // テスト用のドメイン
+
+    let testEmail = `${baseEmail}@${domain}`;
+    if (isDevelopment) {
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8);
+      testEmail = `${baseEmail}+${timestamp}${random}@${domain}`;
+      // console.log('Using test email for signup:', testEmail);
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: testEmail,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/verified`,
+      },
+    });
+
+    if (error) {
+      // console.error('Signup with test email error:', error);
+      throw error;
+    }
+
+    // console.log('Signup with test email successful:', data.user?.id);
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -226,6 +296,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         signOut,
         resetPassword,
         updatePreferences,
+        signInWithOtp,
+        signUpWithTestEmail,
       }}
     >
       {!isLoading ? (

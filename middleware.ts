@@ -8,6 +8,9 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // クッキー一覧を出力
+  console.log('middleware cookies:', [...request.cookies]);
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,6 +36,9 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // 取得したユーザー情報を出力
+  console.log('middleware user:', user);
+
   const { pathname } = request.nextUrl
 
   // Public routes that do not require authentication
@@ -41,6 +47,8 @@ export async function middleware(request: NextRequest) {
     pathname === '/login' ||
     pathname === '/signup' ||
     pathname === '/signup/check-email' ||
+    pathname === '/auth/verified' ||
+    pathname === '/auth/callback' ||
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/api/') ||
     pathname === '/error'
@@ -50,9 +58,19 @@ export async function middleware(request: NextRequest) {
 
   // If user is not logged in, redirect to login page.
   if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    console.log('No user found, redirecting to login');
+    return NextResponse.redirect(new URL('/login?message=Please sign in to continue', request.url))
   }
 
+  // If user is not email-verified, redirect to check-email page
+  if (!user.email_confirmed_at) {
+    console.log('User email not confirmed, redirecting to check-email');
+    // サインアップ直後のメールアドレスをクエリに含めてリダイレクト
+    const email = encodeURIComponent(user.email || '')
+    return NextResponse.redirect(new URL(`/signup/check-email?email=${email}`, request.url))
+  }
+
+  console.log('User authenticated and verified, allowing access');
   return response
 }
 

@@ -28,7 +28,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const externalMessage = searchParams.get("message");
-  const { signInWithEmail, signUpWithEmail, resetPassword, signInWithGoogle } =
+  const { signInWithEmail, signUpWithEmail, resetPassword, signInWithGoogle, signInWithOtp, signUpWithTestEmail } =
     useUser();
 
   const [email, setEmail] = useState("");
@@ -39,6 +39,7 @@ export default function LoginPage() {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
 
   // クリア関数
@@ -163,6 +164,25 @@ export default function LoginPage() {
     }
   };
 
+  const handleOtpSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearMessages();
+    setIsLoading(true);
+    try {
+      await signInWithOtp(email);
+      setOtpSent(true);
+      toast({
+        title: "Check your email",
+        description: "A magic link or OTP has been sent to your email.",
+      });
+    } catch (err) {
+      console.error("OTP sign in error:", err);
+      setError("Failed to send magic link/OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen px-4">
       <div className="w-full max-w-md">
@@ -187,19 +207,20 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            {(externalMessage || error || success || recaptchaError) && (
+            {(externalMessage || error || success || recaptchaError || otpSent) && (
               <Alert
                 variant={
-                  success || externalMessage ? "default" : "destructive"
+                  success || externalMessage || otpSent ? "default" : "destructive"
                 }
                 className="mb-6"
               >
                 <AlertDescription>
-                  {externalMessage || error || success || recaptchaError}
+                  {otpSent
+                    ? "A magic link or OTP has been sent to your email. Please check your inbox."
+                    : externalMessage || error || success || recaptchaError}
                 </AlertDescription>
               </Alert>
             )}
-
             <form
               onSubmit={
                 isForgotPassword ? handleResetPassword : handleSignIn
@@ -241,6 +262,19 @@ export default function LoginPage() {
                       onExpired={() => setRecaptchaToken(null)}
                     />
                   </div>
+                )}
+
+                {/* OTP/Magic Link サインイン用ボタン */}
+                {!isForgotPassword && (
+                  <Button
+                    type="button"
+                    className="w-full"
+                    variant="secondary"
+                    disabled={isLoading || !email}
+                    onClick={handleOtpSignIn}
+                  >
+                    {isLoading ? "Sending..." : "Sign in with Magic Link / OTP"}
+                  </Button>
                 )}
 
                 <CardFooter className="flex flex-col space-y-4 pt-6">

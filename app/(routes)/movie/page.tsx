@@ -11,6 +11,7 @@ import { createClient } from '@/utils/supabase/client';
 import type { Movie } from '@/types/movie';
 import { Search, Filter } from 'lucide-react';
 import { getPopularMovies, searchMovies } from '@/lib/tmdb';
+import { useRouter } from 'next/navigation';
 
 export default function MoviePage() {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -23,6 +24,7 @@ export default function MoviePage() {
   const { user, isLoading } = useUser();
   const supabase = createClient();
   const [authChecked, setAuthChecked] = useState(false);
+  const router = useRouter();
 
   // Get all unique genres and streaming services
   const allGenres = Array.from(new Set(movies.flatMap(movie => movie.genres || [])));
@@ -33,6 +35,13 @@ export default function MoviePage() {
       setAuthChecked(true);
     }
   }, [isLoading]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (user === null) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     if (!authChecked) return;

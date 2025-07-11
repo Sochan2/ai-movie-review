@@ -16,6 +16,7 @@ export function createClient(): SupabaseClient<Database> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set in environment variables.');
   }
+  
   if (typeof window !== 'undefined') {
     if (!window._supabase) {
       window._supabase = createBrowserClient<Database>(

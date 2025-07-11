@@ -16,8 +16,8 @@ export default function MasterpiecesPage() {
 
   useEffect(() => {
     if (isLoading) return;
-    if (!isLoading && !user) {
-      router.push("/login");
+    if (user === null) {
+      router.push('/login');
     }
   }, [user, isLoading, router]);
 

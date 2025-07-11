@@ -7,6 +7,7 @@ import { useUser } from '@/context/user-context';
 import { createClient } from '@/utils/supabase/client';
 import { getPopularMovies, getMoviesByGenre, getTopRatedMovies, getNowPlayingMovies, genreMap } from '@/lib/tmdb';
 import type { Movie } from '@/types/movie';
+import { useRouter } from 'next/navigation';
 
 export default function RecommendationsPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -17,10 +18,14 @@ export default function RecommendationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) setAuthChecked(true);
-  }, [isLoading]);
+    if (isLoading) return;
+    if (user === null) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     if (!authChecked) return;

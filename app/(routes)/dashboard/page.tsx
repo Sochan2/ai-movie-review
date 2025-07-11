@@ -27,8 +27,8 @@ export default function DashboardPage() {
   const [recommendedMovies, setRecommendedMovies] = useState<any[]>([]);
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!isLoading && user === null) {
+    if (isLoading) return; // ローディング中は何もしない
+    if (user === null) {
       router.push('/login');
     }
   }, [user, isLoading, router]);
