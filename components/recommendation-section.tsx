@@ -61,24 +61,35 @@ export function RecommendationSection() {
     console.log('fetchUserPreferences user:', user);
     if (!user) return;
     try {
-      // サブスクとジャンルはusersテーブルから取得
-      const { data: userData, error: userError } = await supabase
-        .from('users')
+      // サブスクとジャンルはuser_profilesテーブルから取得
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
         .select('selected_subscriptions, favorite_genres')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
-
-      if (userError) {
+      console.log('fetchUserPreferences profileData:', profileData, 'profileError:', profileError);
+      if (profileError) {
+        console.error('fetchUserPreferences profileError:', profileError);
+        setSelectedServices([]);
+        setPreferredGenres([]);
+        return;
+      }
+      if (!profileData) {
+        console.warn('fetchUserPreferences: profileData is null or undefined');
         setSelectedServices([]);
         setPreferredGenres([]);
         return;
       }
       setSelectedServices(
-        userData && Array.isArray(userData.selected_subscriptions)
-          ? userData.selected_subscriptions
+        Array.isArray(profileData.selected_subscriptions)
+          ? profileData.selected_subscriptions
           : []
       );
-      setPreferredGenres(userData?.favorite_genres || []);
+      if (profileData && Array.isArray(profileData.favorite_genres)) {
+        setPreferredGenres(profileData.favorite_genres);
+      } else {
+        setPreferredGenres([]);
+      }
     } catch (error) {
       console.error('fetchUserPreferences error:', error);
       setSelectedServices([]);
@@ -91,54 +102,42 @@ export function RecommendationSection() {
     setTrendingLoading(true);
     setTrendingError(null);
     try {
-      let data, error;
-      if (user) {
-        const res = await supabase.rpc('fetch_trending_movies', {
-          providers: selectedServices,
-          genres: preferredGenres
-        });
-        data = res.data; error = res.error;
-      } else {
-        // Public fallback: fetch trending movies without filters
-        const res = await supabase.from('movies').select('*').order('popularity', { ascending: false }).limit(10);
-        data = res.data; error = res.error;
-      }
+      // Always use public fallback: fetch trending movies without filters
+      const res = await supabase.from('movies')
+        .select('id, title, poster_url, genres, providers, popularity')
+        .order('popularity', { ascending: false })
+        .limit(10);
+      const data = res.data, error = res.error;
       if (error) throw error;
       setTrendingMovies((data || []).map((m: any) => ({ ...m, posterUrl: m.poster_url })));
     } catch (e: any) {
-      console.error('fetchTrendingMovies error:', e);
+      console.error('fetchTrendingMovies error:', e, e.message, e.code);
       setTrendingError(e.message || 'Failed to load trending movies.');
     } finally {
       setTrendingLoading(false);
     }
-  }, [supabase, selectedServices, preferredGenres, user]);
+  }, [supabase]);
 
   // Fetch New movies (public fallback for not logged in)
   const fetchNewMovies = useCallback(async () => {
     setNewLoading(true);
     setNewError(null);
     try {
-      let data, error;
-      if (user) {
-        const res = await supabase.rpc('fetch_new_movies', {
-          providers: selectedServices,
-          genres: preferredGenres
-        });
-        data = res.data; error = res.error;
-      } else {
-        // Public fallback: fetch new movies by created_at
-        const res = await supabase.from('movies').select('*').order('created_at', { ascending: false }).limit(10);
-        data = res.data; error = res.error;
-      }
+      // Always use public fallback: fetch new movies by created_at
+      const res = await supabase.from('movies')
+      .select('id, title, poster_url, genres, providers, popularity, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      const data = res.data, error = res.error;
       if (error) throw error;
       setNewMovies((data || []).map((m: any) => ({ ...m, posterUrl: m.poster_url })));
     } catch (e: any) {
-      console.error('fetchNewMovies error:', e);
+      console.error('fetchNewMovies error:', e, e.message, e.code);
       setNewError(e.message || 'Failed to load new movies.');
     } finally {
       setNewLoading(false);
     }
-  }, [supabase, selectedServices, preferredGenres, user]);
+  }, [supabase]);
 
   // Fetch user preferences first, then fetch movies
   useEffect(() => {
@@ -151,17 +150,21 @@ export function RecommendationSection() {
   useEffect(() => {
     if (!isLoading && user) {
       supabase
-        .from('users')
+        .from('user_profiles')
         .select('selected_subscriptions, favorite_genres')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single()
-        .then(({ data: userData }) => {
+        .then(({ data: profileData }) => {
           setSelectedServices(
-            userData && Array.isArray(userData.selected_subscriptions)
-              ? userData.selected_subscriptions
+            profileData && Array.isArray(profileData.selected_subscriptions)
+              ? profileData.selected_subscriptions
               : []
           );
-          setPreferredGenres(userData?.favorite_genres || []);
+          if (profileData && Array.isArray(profileData.favorite_genres)) {
+            setPreferredGenres(profileData.favorite_genres);
+          } else {
+            setPreferredGenres([]);
+          }
         });
     }
   }, [user, isLoading, supabase]);
@@ -189,7 +192,10 @@ export function RecommendationSection() {
         let movies = await getRecommendedMoviesForUser(user.id, supabase);
         // Fallback: if no recommendations, show trending movies
         if (!movies || movies.length === 0) {
-          const trending = await supabase.from('movies').select('*').order('popularity', { ascending: false }).limit(5);
+          const trending = await supabase.from('movies')
+            .select('id, title, poster_url, genres, providers, popularity')
+            .order('popularity', { ascending: false })
+            .limit(5);
           movies = (trending.data || []).map((m: any) => ({ ...m, posterUrl: m.poster_url }));
         }
         setRecommendedMovies((movies || []).slice(0, 5));

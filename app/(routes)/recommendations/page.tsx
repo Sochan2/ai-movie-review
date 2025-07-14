@@ -8,6 +8,12 @@ import { createClient } from '@/utils/supabase/client';
 import { getPopularMovies, getMoviesByGenre, getTopRatedMovies, getNowPlayingMovies, genreMap } from '@/lib/tmdb';
 import type { Movie } from '@/types/movie';
 import { useRouter } from 'next/navigation';
+import { genreOptions } from '@/lib/mock-data'; // 追加
+
+function normalizeGenre(genre: string): string {
+  const found = genreOptions.find(g => g.id === genre);
+  return found ? found.name : genre;
+}
 
 export default function RecommendationsPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -28,6 +34,10 @@ export default function RecommendationsPage() {
   }, [user, isLoading, router]);
 
   useEffect(() => {
+    if (!isLoading) setAuthChecked(true);
+  }, [isLoading]);
+
+  useEffect(() => {
     if (!authChecked) return;
     const fetchData = async () => {
       try {
@@ -36,19 +46,19 @@ export default function RecommendationsPage() {
         let userFavoriteGenres: string[] = [];
         let userSelectedServices: string[] = [];
         if (user) {
-          const { data: userData, error: userError } = await supabase
-            .from('users')
+          const { data: profileData, error: profileError } = await supabase
+            .from('user_profiles')
             .select('selected_subscriptions, favorite_genres')
-            .eq('id', user.id)
+            .eq('user_id', user.id)
             .single();
           const isRealError =
-            userError && (
-              (typeof userError === 'string' && (userError as string).length > 0) ||
-              (typeof userError === 'object' && userError !== null && 'message' in userError && (userError as any).message)
+            profileError && (
+              (typeof profileError === 'string' && (profileError as string).length > 0) ||
+              (typeof profileError === 'object' && profileError !== null && 'message' in profileError && (profileError as any).message)
             );
           if (!isRealError) {
-            userSelectedServices = userData?.selected_subscriptions || [];
-            userFavoriteGenres = userData?.favorite_genres || [];
+            userSelectedServices = profileData?.selected_subscriptions || [];
+            userFavoriteGenres = profileData?.favorite_genres || [];
             setSelectedServices(userSelectedServices);
             setFavoriteGenres(userFavoriteGenres);
           } else {
@@ -60,7 +70,7 @@ export default function RecommendationsPage() {
         if (userFavoriteGenres.length > 0) {
           const genreMovies = await Promise.all(
             userFavoriteGenres.slice(0, 3).map(async (genre) => {
-              const genreId = genreMap[genre];
+              const genreId = genreMap[normalizeGenre(genre)];
               if (genreId) {
                 try {
                   return await getMoviesByGenre(genreId, undefined, supabase);
@@ -196,7 +206,7 @@ export default function RecommendationsPage() {
         </div>
         {recommendedMovies.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {recommendedMovies.map((movie) => (
+            {recommendedMovies.slice(0, 10).map((movie) => (
               <MovieCard key={movie.id} movie={movie} />
             ))}
           </div>

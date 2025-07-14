@@ -86,19 +86,13 @@ export async function getRecommendedMoviesForUser(userId: string, supabase: Supa
   // 1. プロファイル取得
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('likes, dislikes, preferred_genres, favorite_genres')
+    .select('likes, dislikes, favorite_genres, selected_subscriptions')
     .eq('user_id', userId)
     .single();
   if (!profile) return [];
 
-  // 2. サブスク取得
-  const { data: userData } = await supabase
-    .from('users')
-    .select('selected_subscriptions')
-    .eq('id', userId)
-    .single();
-  const selectedSubscriptions = userData?.selected_subscriptions || [];
-  const preferredGenres = profile.preferred_genres || profile.favorite_genres || [];
+  const selectedSubscriptions = profile.selected_subscriptions || [];
+  const preferredGenres = profile.favorite_genres || [];
 
   // 3. 観た映画ID・レビュー取得
   const { data: reviews } = await supabase.from('reviews').select('*').eq('user_id', userId);
@@ -135,6 +129,7 @@ export async function getRecommendedMoviesForUser(userId: string, supabase: Supa
         )
       );
     }
+    console.log('filteredBoth.length:', filteredBoth.length);
     // 優先順位: AND→ジャンルのみ→サブスクのみ→全件
     let result = filteredBoth;
     if (result.length === 0 && preferredGenres.length > 0) {
@@ -247,41 +242,4 @@ export async function getRecommendedMoviesForUser(userId: string, supabase: Supa
 
   // 最大20件返す
   return uniqueRecommended.slice(0, 5);
-}
-
-
-// --- TEST for AI review analysis to score ---
-if (require.main === module) {
-  // AIのjson出力例
-  const aiResult = {
-    features: ['Family', 'Action'],
-    emotions: ['Exciting'],
-    themes: ['Destiny'],
-    tag_sentiment: {
-      'Family': 'positive',
-      'Action': 'positive',
-      'Exciting': 'positive',
-      'Destiny': 'negative'
-    } as Record<string, string>
-  };
-
-  // likes/dislikesを生成
-  let likes: Record<string, number> = {};
-  let dislikes: Record<string, number> = {};
-  for (const tag of [...aiResult.features, ...aiResult.emotions, ...aiResult.themes]) {
-    if (aiResult.tag_sentiment[tag] === 'positive') {
-      likes[tag] = (likes[tag] || 0) + 1;
-    } else if (aiResult.tag_sentiment[tag] === 'negative') {
-      dislikes[tag] = (dislikes[tag] || 0) + 1;
-    }
-  }
-
-  // 映画のタグ例
-  const movieTags = ['Family', 'Action', 'Destiny', 'Exciting'];
-  // スコア計算
-  const score = calculateScore(likes, dislikes, movieTags);
-
-  console.log('AI likes:', likes);       // { Family: 1, Action: 1, Exciting: 1 }
-  console.log('AI dislikes:', dislikes); // { Destiny: 1 }
-  console.log('Score:', score);          // 1+1+1-(1*2) = 1+1+1-2 = 1
 }

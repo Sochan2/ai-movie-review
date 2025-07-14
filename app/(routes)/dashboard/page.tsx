@@ -11,7 +11,7 @@ import { StarRating } from '@/components/star-rating';
 import { useUser } from '@/context/user-context';
 import { createClient } from '@/utils/supabase/client';
 import { MovieReview } from '@/types/movie';
-import { availableStreamingServices } from '@/lib/mock-data';
+import { availableStreamingServices, genreOptions } from '@/lib/mock-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { getRecommendedMoviesForUser } from '@/lib/recommendations';
@@ -25,6 +25,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const [recommendedMovies, setRecommendedMovies] = useState<any[]>([]);
+  const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
+  const [genreLoading, setGenreLoading] = useState(false);
+  const [genreError, setGenreError] = useState<string | null>(null);
+  const [genreSuccess, setGenreSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoading) return; // ローディング中は何もしない
@@ -56,14 +60,15 @@ export default function DashboardPage() {
           tag_sentiment: r.tag_sentiment,
           movie: r.movie,
         })));
-        // Fetch user's subscriptions
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('selected_subscriptions')
-          .eq('id', user.id)
+        // Fetch user's subscriptions and favorite genres from user_profiles table
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('selected_subscriptions, favorite_genres')
+          .eq('user_id', user.id)
           .single();
-        if (userError) throw userError;
-        setSelectedSubscriptions(userData?.selected_subscriptions || []);
+        if (profileError) throw profileError;
+        setSelectedSubscriptions(profileData?.selected_subscriptions || []);
+        setFavoriteGenres(profileData?.favorite_genres || []);
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -94,13 +99,36 @@ export default function DashboardPage() {
 
     try {
       const { error } = await supabase
-        .from('users')
-        .update({ selected_subscriptions: updatedSubscriptions })
-        .eq('id', user.id); // user.id is guaranteed to be string here
-
+        .from('user_profiles')
+        .upsert({ user_id: user.id, selected_subscriptions: updatedSubscriptions, favorite_genres: favoriteGenres });
       if (error) throw error;
     } catch (error) {
       console.error('Error updating subscriptions:', error);
+    }
+  };
+
+  const handleGenreToggle = (genreId: string) => {
+    setFavoriteGenres((prev) =>
+      prev.includes(genreId)
+        ? prev.filter((g) => g !== genreId)
+        : [...prev, genreId]
+    );
+  };
+  const handleSaveGenres = async () => {
+    if (!user) return;
+    setGenreLoading(true);
+    setGenreError(null);
+    setGenreSuccess(null);
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({ user_id: user.id, selected_subscriptions: selectedSubscriptions, favorite_genres: favoriteGenres });
+      if (error) throw error;
+      setGenreSuccess('Complete genre storing');
+    } catch (e) {
+      setGenreError('fail to genre storing');
+    } finally {
+      setGenreLoading(false);
     }
   };
 
@@ -137,7 +165,6 @@ export default function DashboardPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -161,6 +188,49 @@ export default function DashboardPage() {
                 <p className="font-medium">
                   {new Date(user?.created_at || '').toLocaleDateString()}
                 </p>
+              </div>
+              {/* Preferences編集UIをここに統合 */}
+              <div className="mt-8">
+                <h3 className="text-lg font-medium mb-2">Streaming Services</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                  {availableStreamingServices.map((service) => (
+                    <div key={service.id} className="flex items-start space-x-3">
+                      <Checkbox
+                        id={`service-${service.id}`}
+                        checked={selectedSubscriptions.includes(service.id)}
+                        onCheckedChange={() => handleSubscriptionChange(service.id)}
+                      />
+                      <Label
+                        htmlFor={`service-${service.id}`}
+                        className="font-normal"
+                      >
+                        {service.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                <h3 className="text-lg font-medium mb-2">Favorite Genres</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {genreOptions.map((genre) => (
+                    <div key={genre.id} className="flex items-start space-x-3">
+                      <Checkbox
+                        id={`genre-${genre.id}`}
+                        checked={favoriteGenres.includes(genre.id)}
+                        onCheckedChange={() => handleGenreToggle(genre.id)}
+                      />
+                      <Label htmlFor={`genre-${genre.id}`}>{genre.name}</Label>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  className="mt-4"
+                  onClick={handleSaveGenres}
+                  disabled={genreLoading}
+                >
+                  {genreLoading ? 'Saving...' : 'Save Preferences'}
+                </Button>
+                {genreError && <div className="text-red-500 text-sm mt-2">{genreError}</div>}
+                {genreSuccess && <div className="text-green-600 text-sm mt-2">{genreSuccess}</div>}
               </div>
             </CardContent>
           </Card>
@@ -198,33 +268,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="preferences">
-          <Card>
-            <CardHeader>
-              <CardTitle>Streaming Services</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {availableStreamingServices.map((service) => (
-                  <div key={service.id} className="flex items-start space-x-3">
-                    <Checkbox
-                      id={`service-${service.id}`}
-                      checked={selectedSubscriptions.includes(service.id)}
-                      onCheckedChange={() => handleSubscriptionChange(service.id)}
-                    />
-                    <Label
-                      htmlFor={`service-${service.id}`}
-                      className="font-normal"
-                    >
-                      {service.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

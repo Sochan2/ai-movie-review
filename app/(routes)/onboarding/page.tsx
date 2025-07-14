@@ -25,6 +25,7 @@ export default function OnboardingPage() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const { user } = useUser();
   const supabase = createClient();
+  const [error, setError] = useState<string | null>(null);
   
   const totalSteps = 2;
   const progress = (step / totalSteps) * 100;
@@ -49,19 +50,21 @@ export default function OnboardingPage() {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // サブスク・ジャンルをSupabaseに保存
+      setError(null);
       if (user) {
-        // サブスク保存
-        await supabase
-          .from('users')
-          .update({ selected_subscriptions: selectedServices })
-          .eq('id', user.id);
-        // ジャンル保存
-        await supabase
-          .from('user_profiles')
-          .upsert({ user_id: user.id, favorite_genres: selectedGenres });
+        try {
+          // サブスク・ジャンルをuser_profilesに保存
+          const { error: upsertError } = await supabase
+            .from('user_profiles')
+            .upsert({ user_id: user.id, selected_subscriptions: selectedServices, favorite_genres: selectedGenres });
+          if (upsertError) throw upsertError;
+          router.push('/recommendations');
+        } catch (e: any) {
+          setError('Fali to store. Please recheck your connection ');
+        }
+      } else {
+        setError('Cannot get user information. Please login again');
       }
-      router.push('/recommendations');
     }
   };
 
@@ -144,17 +147,22 @@ export default function OnboardingPage() {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={prevStep}
-            disabled={step === 1}
-          >
-            Back
-          </Button>
-          <Button onClick={nextStep}>
-            {step < totalSteps ? "Next" : "Finish"}
-          </Button>
+        <CardFooter className="flex justify-between flex-col gap-2 md:flex-row md:gap-0">
+          <div className="flex w-full justify-between">
+            <Button 
+              variant="outline" 
+              onClick={prevStep}
+              disabled={step === 1}
+            >
+              Back
+            </Button>
+            <Button onClick={nextStep}>
+              {step < totalSteps ? "Next" : "Finish"}
+            </Button>
+          </div>
+          {error && (
+            <div className="text-red-500 text-sm mt-2 text-center w-full">{error}</div>
+          )}
         </CardFooter>
       </Card>
     </div>

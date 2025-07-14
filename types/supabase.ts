@@ -190,6 +190,8 @@ export type Database = {
           likes: Json | null
           updated_at: string | null
           user_id: string
+          selected_subscriptions: string[] | null;
+          favorite_genres: string[] | null;
         }
         Insert: {
           ai_analysis_count?: number
@@ -198,6 +200,8 @@ export type Database = {
           likes?: Json | null
           updated_at?: string | null
           user_id: string
+          selected_subscriptions?: string[] | null;
+          favorite_genres?: string[] | null;
         }
         Update: {
           ai_analysis_count?: number
@@ -206,6 +210,8 @@ export type Database = {
           likes?: Json | null
           updated_at?: string | null
           user_id?: string
+          selected_subscriptions?: string[] | null;
+          favorite_genres?: string[] | null;
         }
         Relationships: [
           {

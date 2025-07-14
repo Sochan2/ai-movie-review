@@ -15,5 +15,5 @@ async function deleteUser(userId) {
   }
 }
 
-// ここに削除したいユーザーのUUIDを入れる
-deleteUser('86a4826f-ab25-4273-875d-1f9ba6ef48dc') 
+// ここに削除したいユーザーのU26fc265f-1630-4962-a7a7-dd999b1c674eUIDを入れる
+deleteUser('6717ed89-7bb3-431b-b5c2-fa085539a255') 

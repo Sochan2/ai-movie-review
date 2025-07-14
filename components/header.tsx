@@ -46,14 +46,14 @@ export default function Header() {
     { href: '/', label: 'Home' },
     { href: '/movie', label: 'Movies' },
     { href: '/recommendations', label: 'Recommendations' },
-    { href: '/masterpieces', label: 'My Masterpieces' },
-    { href: '/preferences', label: 'Preferences' }
+    { href: '/masterpieces', label: 'My Masterpieces' }
   ];
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
+      await fetch('/api/logout');
+      window.location.href = '/';
     } catch (error) {
       console.error('Error signing out:', error);
     }
