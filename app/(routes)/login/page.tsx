@@ -46,6 +46,12 @@ export default function LoginPage() {
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname === '/auth/verified') {
+      window.location.replace('/login?forceSignOut=1');
+    }
+  }, []);
+
+  useEffect(() => {
     // メール認証直後や特定のクエリで強制サインアウト
     if (forceSignOut === '1' || externalMessage === 'Please log in after confirming your email') {
       supabase.auth.signOut();
