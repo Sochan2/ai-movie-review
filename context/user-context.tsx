@@ -220,7 +220,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           email: testEmail,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/verified`,
+            //            emailRedirectTo: `${window.location.origin}/auth/verified`,
+            emailRedirectTo: `${window.location.origin}/login?forceSignOut=1`,
           },
         });
         
@@ -302,7 +303,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       email: testEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/verified`,
+        emailRedirectTo: `${window.location.origin}/login?forceSignOut=1`,
       },
     });
 
