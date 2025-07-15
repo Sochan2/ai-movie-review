@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from '@/utils/supabase/client';
+import { AlertTriangle } from "lucide-react";
 
 function isInAppBrowser() {
   if (typeof window === 'undefined') return false;
@@ -98,17 +99,26 @@ export default function VerifiedPage() {
     return (
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-md">
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 p-6 rounded-lg shadow-lg mb-6 flex flex-col items-center">
+            <AlertTriangle className="text-yellow-600 w-10 h-10 mb-2" />
+            <div className="font-bold text-lg text-yellow-800 mb-2 text-center">
+              Warning: In-app browsers may not work properly!
+            </div>
+            <div className="text-yellow-700 text-center mb-4">
+              This page may not work properly in in-app browsers (such as Gmail, LINE, Instagram, etc).<br/>
+              <b>Please open this page in <u>Safari</u> or <u>Chrome</u> for a smooth login experience.</b>
+            </div>
+            <Button className="w-full font-bold text-lg bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => window.open(window.location.href, '_blank')}>
+              Open in Safari/Chrome
+            </Button>
+          </div>
           <Card>
             <CardHeader>
-              <CardTitle>Open in Safari or Chrome</CardTitle>
+              <CardTitle>Email Confirmation Required</CardTitle>
               <CardDescription>
-                This page may not work properly in in-app browsers (such as Gmail, LINE, Instagram, etc).<br/>
-                Please open this page in Safari or Chrome for a smooth experience.
+                You must open this page in Safari or Chrome to complete your login. In-app browsers may block cookies and prevent login.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button className="w-full" onClick={() => window.open(window.location.href, '_blank')}>Open in Safari/Chrome</Button>
-            </CardContent>
           </Card>
         </div>
       </div>

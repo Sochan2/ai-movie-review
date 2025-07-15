@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ export default function LoginPage() {
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.pathname === '/auth/verified') {
@@ -57,6 +58,29 @@ export default function LoginPage() {
       supabase.auth.signOut();
     }
   }, [forceSignOut, externalMessage, supabase]);
+
+  // Add loading timeout effect
+  useEffect(() => {
+    if (isLoading) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        setError(
+          "Session could not be established. Please check your browser settings, enable cookies, and try clearing your cache."
+        );
+        setIsLoading(false);
+      }, 10000);
+    } else {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+    };
+  }, [isLoading]);
 
   // クリア関数
   const clearMessages = () => {
