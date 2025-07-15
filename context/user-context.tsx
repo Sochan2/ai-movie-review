@@ -143,6 +143,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
   }, [router, toast]);
 
+  useEffect(() => {
+    if (!isLoading && user === null) {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login?message=Session expired. Please log in again.';
+      }
+    }
+  }, [user, isLoading]);
+
   const signInWithGoogle = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -276,8 +284,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   };
 
+  // --- BroadcastChannel for logout sync ---
+  const logoutChannel = React.useRef<BroadcastChannel | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      logoutChannel.current = new window.BroadcastChannel('logout_channel');
+      const handler = (event: MessageEvent) => {
+        if (event.data === 'logout') {
+          window.location.href = '/login?message=You have been signed out.';
+        }
+      };
+      logoutChannel.current.addEventListener('message', handler as EventListener);
+      return () => {
+        logoutChannel.current?.removeEventListener('message', handler as EventListener);
+        logoutChannel.current?.close();
+      };
+    }
+  }, []);
+
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Broadcast logout to all tabs
+    logoutChannel.current?.postMessage('logout');
     router.push('/');
   };
 
