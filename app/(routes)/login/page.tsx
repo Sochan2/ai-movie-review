@@ -312,7 +312,7 @@ export default function LoginPage() {
                       <Button
                         type="submit"
                         className="w-full"
-                        disabled={isLoading}
+                        disabled={isLoading || !recaptchaToken}
                       >
                         {isLoading ? "Signing in..." : "Sign In"}
                       </Button>
