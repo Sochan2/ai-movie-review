@@ -24,6 +24,7 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const { user, isLoading, signOut } = useUser();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -150,7 +151,7 @@ export default function Header() {
             </div>
           )}
 
-          <Sheet>
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="h-6 w-6" />
@@ -161,7 +162,10 @@ export default function Header() {
                 {navLinks.map((link) => (
                   <button
                     key={link.href}
-                    onClick={() => handleNavigation(link.href)}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      handleNavigation(link.href);
+                    }}
                     className="text-lg font-medium"
                   >
                     {link.label}
