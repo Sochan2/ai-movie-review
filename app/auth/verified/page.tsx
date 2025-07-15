@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useUser } from "@/context/user-context";
+import { useToast } from "@/hooks/use-toast";
+import { createClient } from '@/utils/supabase/client';
 
 function isInAppBrowser() {
   if (typeof window === 'undefined') return false;
@@ -19,14 +21,70 @@ function isInAppBrowser() {
   );
 }
 
+// タブ同期用の関数を定義
+function notifyAuthUpdated(): void {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('auth-updated', Date.now().toString());
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('auth_channel');
+        channel.postMessage('auth-updated');
+        channel.close();
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+}
+
 export default function VerifiedPage() {
   const router = useRouter();
   const { user, isLoading } = useUser();
   const [inApp, setInApp] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const supabase = createClient();
 
   useEffect(() => {
     setInApp(isInAppBrowser());
   }, []);
+
+  // 認証済みになった瞬間にタブ同期通知
+  useEffect(() => {
+    if (user && user.email_confirmed_at) {
+      notifyAuthUpdated();
+      setRedirecting(true);
+      const timer = setTimeout(() => {
+        router.replace("/login?forceSignOut=1");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [user, router]);
+
+  // Resend verification email handler
+  const handleResend = async () => {
+    setResendLoading(true);
+    setResendSuccess(null);
+    setResendError(null);
+    try {
+      if (!user?.email) throw new Error("No email found.");
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+      } as any); // Supabase型の都合でas any
+      if (error) throw error;
+      setResendSuccess("Verification email sent!");
+      toast({ title: "Verification email sent!", description: "Please check your inbox." });
+    } catch (e: any) {
+      setResendError(e.message || "Failed to resend verification email.");
+      toast({ title: "Failed to resend", description: e.message || "Please try again later.", variant: "destructive" });
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -65,7 +123,11 @@ export default function VerifiedPage() {
           <Card>
             <CardHeader>
               <CardTitle>Email Verified!</CardTitle>
-              <CardDescription>Your email address has been successfully verified.<br/>Please re-login to continue.</CardDescription>
+              <CardDescription>
+                Your email address has been successfully verified.<br/>
+                Please re-login to continue.<br/>
+                <span style={{ color: '#888' }}>You will be redirected to the login page in 3 seconds...</span>
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Button className="w-full" onClick={() => router.replace("/login?forceSignOut=1")}>Go to Login</Button>
@@ -83,8 +145,21 @@ export default function VerifiedPage() {
         <Card>
           <CardHeader>
             <CardTitle>Email Verification</CardTitle>
-            <CardDescription>Your email is not verified yet. Please check your email for the verification link.</CardDescription>
+            <CardDescription>
+              Your email is not verified yet. Please check your email for the verification link.<br/>
+              <span style={{ color: '#888' }}>
+                If you are having trouble, please try clearing your browser cache and cookies.<br/>
+                Still not working? You can resend the verification email below.
+              </span>
+            </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button className="w-full mb-2" onClick={handleResend} disabled={resendLoading}>
+              {resendLoading ? "Resending..." : "Resend Verification Email"}
+            </Button>
+            {resendSuccess && <div className="text-green-600 text-sm text-center mt-2">{resendSuccess}</div>}
+            {resendError && <div className="text-red-600 text-sm text-center mt-2">{resendError}</div>}
+          </CardContent>
         </Card>
       </div>
     </div>

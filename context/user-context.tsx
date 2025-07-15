@@ -49,7 +49,7 @@ const UserContext = createContext<UserContextType>({
 
 export const useUser = () => useContext(UserContext);
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+export function UserProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -155,7 +155,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading]);
 
-  const signInWithGoogle = async () => {
+  const notifyAuthUpdated = (): void => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('auth-updated', Date.now().toString());
+        if ('BroadcastChannel' in window) {
+          const channel = new BroadcastChannel('auth_channel');
+          channel.postMessage('auth-updated');
+          channel.close();
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
+
+  const signInWithGoogle = async (): Promise<void> => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -168,13 +183,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         },
       });
       if (error) throw error;
+      notifyAuthUpdated();
     } catch (error) {
       // console.error('Google sign in error:', error);
       throw error;
     }
   };
 
-  const signInWithEmail = async (email: string, password: string) => {
+  const signInWithEmail = async (email: string, password: string): Promise<void> => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -195,10 +211,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // console.error('Failed to create/update user profile:', profileError);
         // プロフィール作成に失敗してもサインインは続行
       }
+      notifyAuthUpdated();
     }
   };
 
-  const signInWithOtp = async (email: string) => {
+  const signInWithOtp = async (email: string): Promise<void> => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -206,9 +223,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       },
     });
     if (error) throw error;
+    notifyAuthUpdated();
   };
 
-  const signUpWithEmail = async (email: string, password: string) => {
+  const signUpWithEmail = async (email: string, password: string): Promise<void> => {
     const maxRetries = 5; // リトライ回数を増やす
     let lastError: any = null;
 
@@ -262,6 +280,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         // console.log('Signup successful, user created:', data.user?.id);
         
         // 成功したらループを抜ける
+        notifyAuthUpdated();
         return;
         
       } catch (error: any) {
@@ -319,7 +338,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     await updateUserProfile(user.id, preferences);
   };
 
-  const signUpWithTestEmail = async (password: string) => {
+  const signUpWithTestEmail = async (password: string): Promise<void> => {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const baseEmail = 'testuser'; // テスト用のメールアドレスのベース
     const domain = 'example.com'; // テスト用のドメイン
@@ -346,7 +365,33 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
 
     // console.log('Signup with test email successful:', data.user?.id);
+    notifyAuthUpdated();
   };
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleAuthUpdate = (): void => {
+      supabase.auth.getSession().then((result) => {
+        setUser(result.data.session?.user || null);
+        setIsLoading(false);
+      });
+    };
+    const storageListener = (e: StorageEvent): void => {
+      if (e.key === 'auth-updated') handleAuthUpdate();
+    };
+    window.addEventListener('storage', storageListener);
+    let channel: BroadcastChannel | null = null;
+    if ('BroadcastChannel' in window) {
+      channel = new BroadcastChannel('auth_channel');
+      channel.onmessage = (e: MessageEvent): void => {
+        if (e.data === 'auth-updated') handleAuthUpdate();
+      };
+    }
+    return () => {
+      window.removeEventListener('storage', storageListener);
+      if (channel) channel.close();
+    };
+  }, [supabase]);
 
   return (
     <UserContext.Provider
