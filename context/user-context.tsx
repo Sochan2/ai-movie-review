@@ -145,7 +145,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && user === null) {
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      if (
+        typeof window !== 'undefined' &&
+        !['/login', '/signup', '/signup/check-email', '/auth/verified', '/auth/callback'].includes(window.location.pathname) &&
+        !window.location.pathname.startsWith('/auth/')
+      ) {
         window.location.href = '/login?message=Session expired. Please log in again.';
       }
     }
