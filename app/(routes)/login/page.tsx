@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { Film } from "lucide-react";
 import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
 import ReCAPTCHA from "react-google-recaptcha";
+import { createClient } from '@/utils/supabase/client';
 
 // 型定義がない場合のための宣言
 // declare module 'react-google-recaptcha';
@@ -28,6 +29,8 @@ export default function LoginPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const externalMessage = searchParams.get("message");
+  const forceSignOut = searchParams.get("forceSignOut");
+  const supabase = createClient();
   const { signInWithEmail, signUpWithEmail, resetPassword, signInWithGoogle, signInWithOtp, signUpWithTestEmail } =
     useUser();
 
@@ -41,6 +44,13 @@ export default function LoginPage() {
   const [recaptchaError, setRecaptchaError] = useState<string | null>(null);
   const [otpSent, setOtpSent] = useState(false);
   const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!;
+
+  useEffect(() => {
+    // メール認証直後や特定のクエリで強制サインアウト
+    if (forceSignOut === '1' || externalMessage === 'Please log in after confirming your email') {
+      supabase.auth.signOut();
+    }
+  }, [forceSignOut, externalMessage, supabase]);
 
   // クリア関数
   const clearMessages = () => {
