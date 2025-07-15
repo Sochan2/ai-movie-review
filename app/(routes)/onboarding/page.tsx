@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +29,13 @@ export default function OnboardingPage() {
   
   const totalSteps = 2;
   const progress = (step / totalSteps) * 100;
+
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('line') || ua.includes('instagram')) {
+      alert('This app may not work properly in the in-app browser of LINE or Instagram. Please open this page in an external browser such as Safari or Chrome.');
+    }
+  }, []);
 
   const handleServiceToggle = (service: string) => {
     setSelectedServices(prev => 
@@ -156,7 +163,7 @@ export default function OnboardingPage() {
             >
               Back
             </Button>
-            <Button onClick={nextStep}>
+            <Button onClick={nextStep} disabled={error !== null || !user}>
               {step < totalSteps ? "Next" : "Finish"}
             </Button>
           </div>

@@ -22,7 +22,7 @@ interface UserProfileUpdate {
 interface UserContextType {
   user: User | null;
   isLoading: boolean;
-  isAuthenticated: boolean; // 追加
+  isAuthenticated: boolean; 
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
@@ -69,6 +69,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
   };
+
+  // --- タブ復帰・フォーカス時のセッション再取得とタイムアウト処理 ---
+  useEffect(() => {
+    let lastActive = Date.now();
+    const handleFocus = () => {
+      const now = Date.now();
+      // 1分（60,000ms）以上経過していたらサインアウト
+      if (now - lastActive > 60000) {
+        supabase.auth.signOut().then(() => {
+          router.push('/login?message=Session expired. Please log in again.');
+        });
+      } else {
+        supabase.auth.getSession().then((result) => {
+          setUser(result.data.session?.user || null);
+          setIsLoading(false);
+        });
+      }
+      lastActive = now;
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        handleFocus();
+      }
+    });
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [router, supabase]);
 
   useEffect(() => {
     let unsubscribed = false;
