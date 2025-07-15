@@ -74,7 +74,7 @@ export async function signup(formData: FormData) {
     email: data.email,
     password: data.password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/auth/verified`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/login?message=Please log in after confirming your email`,
     },
   })
 
