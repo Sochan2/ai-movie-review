@@ -127,6 +127,10 @@ export default function VerifiedPage() {
 
   // Email verified UI
   if (user && user.email_confirmed_at) {
+    const handleGoToLogin = (): void => {
+      alert('If you see a blank or loading screen, please copy the link and open it in Safari or Chrome from your home screen.');
+      router.replace("/login?forceSignOut=1");
+    };
     return (
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-md">
@@ -140,7 +144,11 @@ export default function VerifiedPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => router.replace("/login?forceSignOut=1")}>Go to Login</Button>
+              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 rounded text-yellow-800 font-bold text-center">
+                Even if you select "Open in Safari", it may still open in an in-app browser.<br/>
+                <b>Please copy the link and paste it into the real Safari or Chrome app from your home screen.</b>
+              </div>
+              <Button className="w-full" onClick={handleGoToLogin}>Go to Login</Button>
             </CardContent>
           </Card>
         </div>
