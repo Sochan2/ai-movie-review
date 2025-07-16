@@ -145,7 +145,7 @@ export default function VerifiedPage() {
             </CardHeader>
             <CardContent>
               <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 rounded text-yellow-800 font-bold text-center">
-                Even if you select "Open in Safari", it may still open in an in-app browser.<br/>
+                Even if you select &quot;Open in Safari&quot;, it may still open in an in-app browser.<br/>
                 <b>Please copy the link and paste it into the real Safari or Chrome app from your home screen.</b>
               </div>
               <Button className="w-full" onClick={handleGoToLogin}>Go to Login</Button>
