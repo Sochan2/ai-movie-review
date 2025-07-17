@@ -72,27 +72,27 @@ export default function LoginPage() {
   }, [forceSignOut, externalMessage, supabase]);
 
   // Add loading timeout effect
-  useEffect(() => {
-    if (isLoading) {
-      loadingTimeoutRef.current = setTimeout(() => {
-        setError(
-          "Session could not be established. Please check your browser settings, enable cookies, and try clearing your cache."
-        );
-        setIsLoading(false);
-      }, 10000);
-    } else {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-    }
-    return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-    };
-  }, [isLoading]);
+  // useEffect(() => {
+  //   if (isLoading) {
+  //     loadingTimeoutRef.current = setTimeout(() => {
+  //       setError(
+  //         "Session could not be established. Please check your browser settings, enable cookies, and try clearing your cache."
+  //       );
+  //       setIsLoading(false);
+  //     }, 10000);
+  //   } else {
+  //     if (loadingTimeoutRef.current) {
+  //       clearTimeout(loadingTimeoutRef.current);
+  //       loadingTimeoutRef.current = null;
+  //     }
+  //   }
+  //   return () => {
+  //     if (loadingTimeoutRef.current) {
+  //       clearTimeout(loadingTimeoutRef.current);
+  //       loadingTimeoutRef.current = null;
+  //     }
+  //   };
+  // }, [isLoading]);
 
   // クリア関数
   const clearMessages = () => {

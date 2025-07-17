@@ -147,7 +147,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
     if (!isLoading && user === null) {
       if (
         typeof window !== 'undefined' &&
-        !['/login', '/signup', '/signup/check-email', '/auth/verified', '/auth/callback'].includes(window.location.pathname) &&
+        !['/', '/login', '/signup', '/signup/check-email', '/auth/verified', '/auth/callback'].includes(window.location.pathname) &&
         !window.location.pathname.startsWith('/auth/')
       ) {
         window.location.href = '/login?message=Session expired. Please log in again.';
@@ -328,9 +328,21 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // localStorage/sessionStorageのSupabase関連キーを全削除
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-')) localStorage.removeItem(key);
+      });
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith('sb-')) sessionStorage.removeItem(key);
+      });
+    }
     // Broadcast logout to all tabs
     logoutChannel.current?.postMessage('logout');
-    router.push('/');
+    // サーバー側クッキーも消す
+    await fetch('/api/logout', { credentials: 'include' });
+    // 完全リロード
+    window.location.href = '/login?message=You have been signed out.';
   };
 
   const updatePreferences = async (preferences: Preferences) => {
