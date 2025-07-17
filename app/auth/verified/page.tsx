@@ -53,6 +53,33 @@ export default function VerifiedPage() {
     setInApp(isInAppBrowser());
   }, []);
 
+  useEffect(() => {
+    // クッキーからトークンを取得
+    const getCookie = (name: string): string | null => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()!.split(';').shift() || null;
+      return null;
+    };
+
+    const access_token = getCookie('sb-access-token');
+    const refresh_token = getCookie('sb-refresh-token');
+    const supabase = createClient();
+
+    if (access_token && refresh_token) {
+      supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('setSession error:', error);
+        } else {
+          console.log('setSession success:', data);
+        }
+      });
+    }
+  }, []);
+
   // 認証済みになった瞬間にタブ同期通知
   useEffect(() => {
     if (user && user.email_confirmed_at) {
