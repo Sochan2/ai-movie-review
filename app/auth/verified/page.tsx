@@ -54,16 +54,16 @@ export default function VerifiedPage() {
   }, []);
 
   // 認証済みになった瞬間にタブ同期通知
-  useEffect(() => {
-    if (user && user.email_confirmed_at) {
-      notifyAuthUpdated();
-      setRedirecting(true);
-      const timer = setTimeout(() => {
-        router.replace("/login");
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [user, router]);
+  // useEffect(() => {
+  //   if (user && user.email_confirmed_at) {
+  //     notifyAuthUpdated();
+  //     setRedirecting(true);
+  //     const timer = setTimeout(() => {
+  //       router.replace("/login");
+  //     }, 3000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [user, router]);
 
   // Resend verification email handler
   const handleResend = async () => {
