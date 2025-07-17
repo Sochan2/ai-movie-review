@@ -59,7 +59,7 @@ export default function VerifiedPage() {
       notifyAuthUpdated();
       setRedirecting(true);
       const timer = setTimeout(() => {
-        router.replace("/login?forceSignOut=1");
+        router.replace("/login");
       }, 3000);
       return () => clearTimeout(timer);
     }
