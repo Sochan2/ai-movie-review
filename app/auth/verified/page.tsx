@@ -128,6 +128,19 @@ export default function VerifiedPage() {
   // Email verified UI
   if (user && user.email_confirmed_at) {
     const handleGoToLogin = (): void => {
+      // Supabase関連のlocalStorage/sessionStorage/クッキーをクリア
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith('sb-')) localStorage.removeItem(key);
+        });
+        Object.keys(sessionStorage).forEach((key) => {
+          if (key.startsWith('sb-')) sessionStorage.removeItem(key);
+        });
+        // クッキーもクリア（httpOnlyは消せないが念のため）
+        document.cookie.split(';').forEach(function(c) {
+          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+        });
+      }
       router.replace("/login");
     };
     return (
