@@ -47,6 +47,14 @@ export default function LoginPage() {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then((result) => {
+      console.log('LoginPage: getSession result', result);
+    });
+    console.log('LoginPage: location.href', window.location.href);
+    console.log('LoginPage: searchParams', Object.fromEntries(searchParams.entries()));
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== 'undefined' && window.location.pathname === '/auth/verified') {
       window.location.replace('/login?forceSignOut=1');
     }

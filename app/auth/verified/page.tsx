@@ -129,7 +129,7 @@ export default function VerifiedPage() {
   if (user && user.email_confirmed_at) {
     const handleGoToLogin = (): void => {
       alert('If you see a blank or loading screen, please copy the link and open it in Safari or Chrome from your home screen.');
-      router.replace("/login?forceSignOut=1");
+      router.replace("/login");
     };
     return (
       <div className="flex items-center justify-center min-h-screen px-4">
