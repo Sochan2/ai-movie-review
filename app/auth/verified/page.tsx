@@ -53,33 +53,6 @@ export default function VerifiedPage() {
     setInApp(isInAppBrowser());
   }, []);
 
-  useEffect(() => {
-    // クッキーからトークンを取得
-    const getCookie = (name: string): string | null => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop()!.split(';').shift() || null;
-      return null;
-    };
-
-    const access_token = getCookie('sb-access-token');
-    const refresh_token = getCookie('sb-refresh-token');
-    const supabase = createClient();
-
-    if (access_token && refresh_token) {
-      supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error('setSession error:', error);
-        } else {
-          console.log('setSession success:', data);
-        }
-      });
-    }
-  }, []);
-
   // 認証済みになった瞬間にタブ同期通知
   useEffect(() => {
     if (user && user.email_confirmed_at) {
@@ -155,7 +128,6 @@ export default function VerifiedPage() {
   // Email verified UI
   if (user && user.email_confirmed_at) {
     const handleGoToLogin = (): void => {
-      alert('If you see a blank or loading screen, please copy the link and open it in Safari or Chrome from your home screen.');
       router.replace("/login");
     };
     return (
@@ -165,16 +137,12 @@ export default function VerifiedPage() {
             <CardHeader>
               <CardTitle>Email Verified!</CardTitle>
               <CardDescription>
-                Your email address has been successfully verified.<br/>
-                Please re-login to continue.<br/>
-                <span style={{ color: '#888' }}>You will be redirected to the login page in 3 seconds...</span>
+                <div className="text-red-600 font-bold mb-2">Verification complete!</div>
+                <div className="mb-2">For security reasons, you must <b>log in again</b> with your email and password.</div>
+                <div className="mb-2">Please go to the login page and sign in to continue.</div>
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 rounded text-yellow-800 font-bold text-center">
-                Even if you select &quot;Open in Safari&quot;, it may still open in an in-app browser.<br/>
-                <b>Please copy the link and paste it into the real Safari or Chrome app from your home screen.</b>
-              </div>
               <Button className="w-full" onClick={handleGoToLogin}>Go to Login</Button>
             </CardContent>
           </Card>
