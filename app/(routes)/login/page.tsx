@@ -55,6 +55,10 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    console.log('LoginPage: document.cookie', document.cookie);
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== 'undefined' && window.location.pathname === '/auth/verified') {
       window.location.replace('/login?forceSignOut=1');
     }
