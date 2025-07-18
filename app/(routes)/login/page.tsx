@@ -94,6 +94,12 @@ export default function LoginPage() {
     console.log('LoginPage: user', userContext, 'userLoading', userLoading);
   }, [userContext, userLoading]);
 
+  useEffect(() => {
+    if (userContext && !userLoading) {
+      router.push('/');
+    }
+  }, [userContext, userLoading, router]);
+
   // Add loading timeout effect
   // useEffect(() => {
   //   if (isLoading) {
