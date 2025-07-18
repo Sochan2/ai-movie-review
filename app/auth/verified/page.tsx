@@ -40,7 +40,7 @@ function notifyAuthUpdated(): void {
 
 export default function VerifiedPage() {
   const router = useRouter();
-  const { user, isLoading } = useUser();
+  const { user, isLoading, setUser } = useUser();
   const [inApp, setInApp] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
@@ -148,6 +148,7 @@ export default function VerifiedPage() {
         fetch('/api/logout', { credentials: 'include' });
         const supabase = createClient();
         supabase.auth.signOut();
+        setUser(null); // 追加
       }
       router.replace("/login");
     };

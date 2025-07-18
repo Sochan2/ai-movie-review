@@ -22,7 +22,8 @@ interface UserProfileUpdate {
 interface UserContextType {
   user: User | null;
   isLoading: boolean;
-  isAuthenticated: boolean; 
+  isAuthenticated: boolean;
+  setUser: (user: User | null) => void; // 追加
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
@@ -37,6 +38,7 @@ const UserContext = createContext<UserContextType>({
   user: null,
   isLoading: true,
   isAuthenticated: false, // 初期値
+  setUser: () => {}, // 初期値
   signInWithGoogle: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async (email: string, password: string) => {},
@@ -439,6 +441,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
         user,
         isLoading,
         isAuthenticated,
+        setUser, // 追加
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
