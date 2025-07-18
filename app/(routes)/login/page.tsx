@@ -47,8 +47,12 @@ export default function LoginPage() {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const supabase = createClient();
     supabase.auth.getSession().then((result) => {
       console.log('LoginPage: getSession result', result);
+      if (!result.data.session) {
+        console.log('Session is cleared!');
+      }
     });
     console.log('LoginPage: location.href', window.location.href);
     console.log('LoginPage: searchParams', Object.fromEntries(searchParams.entries()));
@@ -73,7 +77,7 @@ export default function LoginPage() {
       if (typeof window !== 'undefined' && window._supabase) {
         delete window._supabase;
       }
-      const newSupabase = createClient();
+      const newSupabase = createClient(true); // forceNewで再生成
       newSupabase.auth.signOut().then(() => {
         newSupabase.auth.getSession().then((result) => {
           if (result.data.session) {
@@ -81,8 +85,10 @@ export default function LoginPage() {
           }
         });
       });
+      // 念のためリロード
+      window.location.reload();
     }
-  }, [forceSignOut, externalMessage, supabase]);
+  }, [forceSignOut, externalMessage]);
 
   // Add loading timeout effect
   // useEffect(() => {
