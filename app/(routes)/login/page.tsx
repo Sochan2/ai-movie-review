@@ -67,7 +67,20 @@ export default function LoginPage() {
   useEffect(() => {
     // メール認証直後や特定のクエリで強制サインアウト
     if (forceSignOut === '1' || externalMessage === 'Please log in after confirming your email') {
-      supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      fetch('/api/logout', { credentials: 'include' });
+      if (typeof window !== 'undefined' && window._supabase) {
+        delete window._supabase;
+      }
+      const newSupabase = createClient();
+      newSupabase.auth.signOut().then(() => {
+        newSupabase.auth.getSession().then((result) => {
+          if (result.data.session) {
+            window.location.reload();
+          }
+        });
+      });
     }
   }, [forceSignOut, externalMessage, supabase]);
 

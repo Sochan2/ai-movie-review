@@ -53,9 +53,6 @@ export default function Header() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      await fetch('/api/logout', { credentials: 'include' }); // Cookieを必ず送信
-      // 追加: Cookieを完全に消すためにリロード
-      window.location.href = '/login?message=You have been signed out.';
     } catch (error) {
       console.error('Error signing out:', error);
     }

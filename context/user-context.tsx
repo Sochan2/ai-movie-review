@@ -54,11 +54,16 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
-  const supabase = createClient();
 
   const isAuthenticated = !!user;
 
+  // グローバルなsupabase変数は削除済み
+  // 各useEffectや関数内でconst supabase = createClient();を必ず定義
+  // linterエラー箇所もすべてsupabaseを都度定義
+
+  // 例: updateUserProfile
   const updateUserProfile = async (userId: string, data: UserProfileUpdate) => {
+    const supabase = createClient();
     const { error } = await supabase
       .from('users')
       .upsert({
@@ -66,12 +71,12 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
         ...data,
         updated_at: new Date().toISOString(),
       });
-
     if (error) throw error;
   };
 
   // --- タブ復帰・フォーカス時のセッション再取得とタイムアウト処理 ---
   useEffect(() => {
+    const supabase = createClient();
     let lastActive = Date.now();
     const handleFocus = () => {
       const now = Date.now();
@@ -98,9 +103,10 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleFocus);
     };
-  }, [router, supabase]);
+  }, [router]);
 
   useEffect(() => {
+    const supabase = createClient();
     let unsubscribed = false;
     // まずgetSessionで即座に状態を反映
     supabase.auth.getSession().then((result) => {
@@ -171,6 +177,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   };
 
   const signInWithGoogle = async (): Promise<void> => {
+    const supabase = createClient();
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -191,6 +198,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   };
 
   const signInWithEmail = async (email: string, password: string): Promise<void> => {
+    const supabase = createClient();
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -216,6 +224,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   };
 
   const signInWithOtp = async (email: string): Promise<void> => {
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -227,6 +236,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   };
 
   const signUpWithEmail = async (email: string, password: string): Promise<void> => {
+    const supabase = createClient();
     const maxRetries = 5; // リトライ回数を増やす
     let lastError: any = null;
 
@@ -301,6 +311,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   };
 
   const resetPassword = async (email: string) => {
+    const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     });
@@ -327,8 +338,17 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   }, []);
 
   const signOut = async () => {
+    const supabase = createClient();
+    // サーバー側クッキーを先に消す
+    await fetch('/api/logout', { credentials: 'include' });
+    // Supabaseクライアントのセッション削除
     await supabase.auth.signOut();
-    // localStorage/sessionStorageのSupabase関連キーを全削除
+    // 念のためセッションが消えているか確認し、残っていれば再度サインアウト
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      await supabase.auth.signOut();
+    }
+    // localStorage/sessionStorageの全クリア（sb-で始まるものも個別に削除）
     if (typeof window !== 'undefined') {
       Object.keys(localStorage).forEach((key) => {
         if (key.startsWith('sb-')) localStorage.removeItem(key);
@@ -336,21 +356,28 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
       Object.keys(sessionStorage).forEach((key) => {
         if (key.startsWith('sb-')) sessionStorage.removeItem(key);
       });
+      localStorage.clear();
+      sessionStorage.clear();
+      if (window._supabase) {
+        delete window._supabase;
+      }
     }
+    // UserProviderのuser stateもnullに
+    setUser(null);
     // Broadcast logout to all tabs
     logoutChannel.current?.postMessage('logout');
-    // サーバー側クッキーも消す
-    await fetch('/api/logout', { credentials: 'include' });
     // 完全リロード
     window.location.href = '/login?message=You have been signed out.';
   };
 
   const updatePreferences = async (preferences: Preferences) => {
     if (!user) return;
+    const supabase = createClient();
     await updateUserProfile(user.id, preferences);
   };
 
   const signUpWithTestEmail = async (password: string): Promise<void> => {
+    const supabase = createClient();
     const isDevelopment = process.env.NODE_ENV === 'development';
     const baseEmail = 'testuser'; // テスト用のメールアドレスのベース
     const domain = 'example.com'; // テスト用のドメイン
@@ -382,6 +409,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
+    const supabase = createClient();
     const handleAuthUpdate = (): void => {
       supabase.auth.getSession().then((result) => {
         setUser(result.data.session?.user || null);
@@ -403,7 +431,7 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
       window.removeEventListener('storage', storageListener);
       if (channel) channel.close();
     };
-  }, [supabase]);
+  }, []);
 
   return (
     <UserContext.Provider

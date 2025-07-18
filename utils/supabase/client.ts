@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-export function createClient(): SupabaseClient<Database> {
+export function createClient(forceNew = false): SupabaseClient<Database> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set in environment variables.');
   }
@@ -18,7 +18,7 @@ export function createClient(): SupabaseClient<Database> {
   }
   
   if (typeof window !== 'undefined') {
-    if (!window._supabase) {
+    if (!window._supabase || forceNew) {
       window._supabase = createBrowserClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

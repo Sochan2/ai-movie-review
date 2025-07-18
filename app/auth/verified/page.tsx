@@ -51,6 +51,20 @@ export default function VerifiedPage() {
 
   useEffect(() => {
     setInApp(isInAppBrowser());
+    // 認証完了画面に来たら必ずサインアウト
+    const supabase = createClient();
+    supabase.auth.signOut();
+    // localStorage/sessionStorageもクリア
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-')) localStorage.removeItem(key);
+      });
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith('sb-')) sessionStorage.removeItem(key);
+      });
+      // サーバー側クッキーも消す
+      fetch('/api/logout', { credentials: 'include' });
+    }
   }, []);
 
   // 認証済みになった瞬間にタブ同期通知
@@ -127,19 +141,13 @@ export default function VerifiedPage() {
 
   // Email verified UI
   if (user && user.email_confirmed_at) {
-    const handleGoToLogin = (): void => {
-      // Supabase関連のlocalStorage/sessionStorage/クッキーをクリア
+    const handleGoToLogin = () => {
       if (typeof window !== 'undefined') {
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('sb-')) localStorage.removeItem(key);
-        });
-        Object.keys(sessionStorage).forEach((key) => {
-          if (key.startsWith('sb-')) sessionStorage.removeItem(key);
-        });
-        // クッキーもクリア（httpOnlyは消せないが念のため）
-        document.cookie.split(';').forEach(function(c) {
-          document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-        });
+        localStorage.clear();
+        sessionStorage.clear();
+        fetch('/api/logout', { credentials: 'include' });
+        const supabase = createClient();
+        supabase.auth.signOut();
       }
       router.replace("/login");
     };
