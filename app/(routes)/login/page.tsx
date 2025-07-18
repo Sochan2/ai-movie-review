@@ -31,7 +31,7 @@ export default function LoginPage() {
   const externalMessage = searchParams.get("message");
   const forceSignOut = searchParams.get("forceSignOut");
   const supabase = createClient();
-  const { signInWithEmail, signUpWithEmail, resetPassword, signInWithGoogle, signInWithOtp, signUpWithTestEmail } =
+  const { user: userContext, isLoading: userLoading, signInWithEmail, signUpWithEmail, resetPassword, signInWithGoogle, signInWithOtp, signUpWithTestEmail } =
     useUser();
 
   const [email, setEmail] = useState("");
@@ -90,6 +90,10 @@ export default function LoginPage() {
     }
   }, [forceSignOut, externalMessage]);
 
+  useEffect(() => {
+    console.log('LoginPage: user', userContext, 'userLoading', userLoading);
+  }, [userContext, userLoading]);
+
   // Add loading timeout effect
   // useEffect(() => {
   //   if (isLoading) {
@@ -121,6 +125,7 @@ export default function LoginPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('handleSignIn called');
     clearMessages();
     setIsLoading(true);
     setRecaptchaError(null);
