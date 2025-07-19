@@ -173,6 +173,9 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
         .eq('user_id', user.id)
         .single()
         .then(({ data, error }) => {
+          if (error) {
+            console.error('user_profiles select error:', error);
+          }
           if (!data) {
             supabase.from('user_profiles').insert({
               user_id: user.id,
