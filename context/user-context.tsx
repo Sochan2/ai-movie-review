@@ -163,6 +163,27 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
     }
   }, [user, isLoading]);
 
+  // --- user_profiles自動作成 ---
+  useEffect(() => {
+    if (user && !isLoading) {
+      const supabase = createClient();
+      supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data, error }) => {
+          if (!data) {
+            supabase.from('user_profiles').insert({
+              user_id: user.id,
+              selected_subscriptions: [],
+              favorite_genres: [],
+            });
+          }
+        });
+    }
+  }, [user, isLoading]);
+
   const notifyAuthUpdated = (): void => {
     if (typeof window !== 'undefined') {
       try {
