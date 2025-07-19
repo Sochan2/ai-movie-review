@@ -166,30 +166,36 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
   // --- user_profiles自動作成 ---
   useEffect(() => {
     if (user && !isLoading) {
-      const supabase = createClient();
-      supabase
-        .from('user_profiles')
-        .select('user_id')
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('user_profiles select error:', error);
-          }
-          if (!data) {
-            supabase.from('user_profiles').insert({
-              user_id: user.id,
-              selected_subscriptions: [],
-              favorite_genres: [],
-            }).then(({ error: insertError }) => {
-              if (insertError) {
-                console.error('user_profiles insert error:', insertError);
-              } else {
-                console.log('user_profiles inserted for', user.id);
-              }
-            });
-          }
-        });
+      setTimeout(() => {
+        const supabase = createClient();
+        (supabase
+          .from('user_profiles')
+          .select('user_id')
+          .eq('user_id', user.id)
+          .single() as unknown as Promise<any>)
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('user_profiles select error:', error);
+            }
+            if (!data) {
+              (supabase.from('user_profiles').insert({
+                user_id: user.id,
+                selected_subscriptions: [],
+                favorite_genres: [],
+              }) as unknown as Promise<any>).then(({ error: insertError }) => {
+                if (insertError) {
+                  console.error('user_profiles insert error:', insertError);
+                } else {
+                  console.log('user_profiles inserted for', user.id);
+                }
+              }).catch((e: any) => {
+                console.error('user_profiles insert promise error:', e);
+              });
+            }
+          }).catch((e: any) => {
+            console.error('user_profiles select promise error:', e);
+          });
+      }, 1000); // 1秒遅延
     }
   }, [user, isLoading]);
 
