@@ -178,6 +178,12 @@ export function UserProvider({ children }: { children: React.ReactNode }): JSX.E
               user_id: user.id,
               selected_subscriptions: [],
               favorite_genres: [],
+            }).then(({ error: insertError }) => {
+              if (insertError) {
+                console.error('user_profiles insert error:', insertError);
+              } else {
+                console.log('user_profiles inserted for', user.id);
+              }
             });
           }
         });
