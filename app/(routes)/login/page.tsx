@@ -161,7 +161,8 @@ export default function LoginPage() {
         title: "Signed in",
         description: "Welcome back!",
       });
-      router.push("/");
+      window.location.reload(); // ← ここでリロード
+      // router.push("/") は不要
     } catch (err) {
       console.error("Sign in error:", err);
       setError("Invalid email or password.");
